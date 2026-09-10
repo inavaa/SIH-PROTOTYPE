@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dose Dock — H2S Exposure Monitoring</title>
+<meta name="description" content="Dose Dock — passive colorimetric H2S exposure dosimeter workflow station." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+:root {
+  --forest: #0F3D2E;
+  --deep-green: #123527;
+  --emerald: #1F6F4E;
+  --sage: #7C9885;
+  --mint: #DCE9DE;
+  --off-white: #F6F8F5;
+  --surface: #FFFFFF;
+  --border: #D8E3DA;
+  --text: #12241C;
+  --muted: #5B6E62;
+  --danger: #B3402A;
+  --danger-bg: #FBEAE5;
+  --warning-bg: #FBF3DC;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(15,61,46,0.08), 0 2px 8px rgba(15,61,46,0.06);
+  --font-body: "IBM Plex Sans", "Noto Sans Kannada", "Noto Sans Devanagari", -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--off-white);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; }
+:focus-visible { outline: 3px solid var(--emerald); outline-offset: 2px; }
+
+#app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ---------- HEADER ---------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: var(--forest);
+  color: var(--off-white);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.brand { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--emerald), var(--sage));
+  flex-shrink: 0;
+}
+.brand-name { font-weight: 600; font-size: 1.05rem; letter-spacing: 0.01em; }
+.brand-sub { font-size: 0.75rem; color: var(--mint); opacity: 0.85; }
+.header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lang-switch { display: flex; gap: 4px; background: rgba(255,255,255,0.08); border-radius: 8px; padding: 3px; }
+.lang-btn {
+  border: none; background: transparent; color: var(--mint);
+  padding: 6px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600;
+  cursor: pointer; letter-spacing: 0.03em;
+}
+.lang-btn.active { background: var(--off-white); color: var(--forest); }
+
+/* ---------- MAIN / GENERIC ---------- */
+.app-main { flex: 1; padding: 28px; max-width: 880px; margin: 0 auto; width: 100%; }
+.screen { display: flex; flex-direction: column; gap: 18px; }
+.screen-title { font-size: 1.6rem; font-weight: 600; margin: 0; color: var(--forest); }
+.screen-instruction { font-size: 1.05rem; color: var(--text); margin: 0; }
+.section-heading { font-size: 1rem; font-weight: 600; color: var(--forest); margin: 10px 0 0; }
+.alert-title { color: var(--danger); }
+
+/* ---------- ROLE / CHOICE CARDS ---------- */
+.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.role-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 28px 20px; text-align: left; cursor: pointer; box-shadow: var(--shadow);
+  transition: border-color 0.15s ease, transform 0.1s ease;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.role-card:hover { border-color: var(--emerald); }
+.role-card:active { transform: scale(0.99); }
+.role-icon { width: 40px; height: 40px; border-radius: 8px; background: var(--mint); }
+.role-icon-dock { background: linear-gradient(135deg, var(--emerald), var(--forest)); }
+.role-icon-manager { background: linear-gradient(135deg, var(--sage), var(--emerald)); }
+.role-icon-start { background: linear-gradient(135deg, var(--emerald), var(--sage)); }
+.role-icon-end { background: linear-gradient(135deg, var(--forest), var(--emerald)); }
+.role-name { font-size: 1.15rem; font-weight: 600; color: var(--forest); }
+.role-desc { font-size: 0.85rem; color: var(--muted); }
+
+/* ---------- PROGRESS ---------- */
+.progress-wrap { display: flex; flex-direction: column; gap: 6px; }
+.progress-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; color: var(--sage); font-family: var(--font-mono); }
+.progress-track { height: 5px; border-radius: 4px; background: var(--mint); overflow: hidden; }
+.progress-fill { height: 100%; background: var(--emerald); transition: width 0.3s ease; }
+
+/* ---------- ALERTS / PANELS ---------- */
+.alert { padding: 12px 16px; border-radius: var(--radius); font-size: 0.95rem; }
+.alert-success { background: #E4F1E8; color: var(--deep-green); border: 1px solid #BEDECA; }
+.alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #EAC7BC; }
+.alert-neutral { background: var(--mint); color: var(--deep-green); border: 1px solid var(--border); }
+
+.result-panel, .mini-summary {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;
+}
+.error-panel { border-color: #EAC7BC; background: var(--danger-bg); }
+.success-panel { border-color: #BEDECA; background: #EFF7F1; }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 0.92rem; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.kv:last-child { border-bottom: none; padding-bottom: 0; }
+.kv span { color: var(--muted); }
+.kv strong { font-family: var(--font-mono); color: var(--text); }
+
+/* ---------- SCANNER ---------- */
+.scan-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.camera-frame {
+  position: relative; width: 100%; max-width: 420px; aspect-ratio: 4/3;
+  background: #0A1F17; border-radius: var(--radius); overflow: hidden;
+  border: 2px solid var(--forest);
+}
+.camera-video { width: 100%; height: 100%; object-fit: cover; }
+.hidden-canvas { display: none; }
+.scan-frame-overlay {
+  position: absolute; inset: 14%; border: 2px solid var(--sage); border-radius: 12px;
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.25);
+}
+.scan-line {
+  position: absolute; left: 0; right: 0; height: 2px; background: var(--emerald);
+  animation: scanmove 1.6s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--emerald);
+}
+@keyframes scanmove { 0% { top: 4%; } 50% { top: 92%; } 100% { top: 4%; } }
+.strip-frame-overlay {
+  position: absolute; inset: 30%; border: 2px dashed var(--sage); border-radius: 8px;
+}
+.scan-status { font-size: 0.85rem; color: var(--muted); font-family: var(--font-mono); }
+.lighting-indicator { font-size: 0.8rem; font-family: var(--font-mono); padding: 4px 10px; border-radius: 6px; background: var(--mint); }
+.lighting-indicator.ok { background: #E4F1E8; color: var(--deep-green); }
+.lighting-indicator.bad { background: var(--warning-bg); color: #8A5A00; }
+.warmup-hint { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+
+/* ---------- BUTTONS ---------- */
+.btn {
+  border: none; border-radius: 8px; padding: 12px 20px; font-size: 0.95rem; font-weight: 600;
+  cursor: pointer; transition: background 0.15s ease, transform 0.08s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--emerald); color: #fff; }
+.btn-primary:hover { background: var(--forest); }
+.btn-secondary { background: var(--mint); color: var(--forest); }
+.btn-secondary:hover { background: var(--sage); color: #fff; }
+.btn-ghost { background: transparent; color: var(--off-white); border: 1px solid rgba(255,255,255,0.35); }
+
+/* ---------- RESULT HERO ---------- */
+.result-hero {
+  background: var(--forest); color: var(--off-white); border-radius: var(--radius);
+  padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+}
+.result-label { font-size: 0.75rem; letter-spacing: 0.06em; color: var(--mint); text-transform: uppercase; margin-top: 10px; }
+.result-value { font-size: 2.6rem; font-weight: 700; font-family: var(--font-mono); }
+.result-confidence { font-size: 1.6rem; font-weight: 600; font-family: var(--font-mono); color: var(--sage); }
+
+/* ---------- STAGE LIST (AI processing) ---------- */
+.stage-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.stage-item {
+  padding: 12px 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); font-size: 0.92rem; transition: all 0.25s ease;
+}
+.stage-item.stage-active { background: var(--mint); color: var(--forest); border-color: var(--emerald); font-weight: 600; }
+
+/* ---------- COLOR SCALE ---------- */
+.reference-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.scale-title { font-size: 0.85rem; font-weight: 700; color: var(--forest); margin-bottom: 8px; }
+.scale-row { display: flex; border-radius: 6px; overflow: hidden; }
+.scale-block {
+  flex: 1; height: 46px; display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 4px; color: rgba(255,255,255,0.9); font-size: 0.68rem; font-family: var(--font-mono);
+}
+.scale-caption { font-size: 0.72rem; color: var(--muted); margin-top: 8px; }
+
+/* ---------- MANAGER ---------- */
+.summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; }
+.summary-value { font-size: 1.6rem; font-weight: 700; color: var(--forest); font-family: var(--font-mono); }
+.summary-label { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.manager-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+.search-input, .filter-select {
+  padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem; background: var(--surface);
+}
+.search-input { flex: 1; min-width: 200px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.records-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 720px; }
+.records-table th {
+  text-align: left; padding: 10px 14px; background: var(--mint); color: var(--forest);
+  font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; position: sticky; top: 0;
+}
+.records-table td { padding: 10px 14px; border-top: 1px solid var(--border); font-family: var(--font-mono); }
+.record-row { cursor: pointer; }
+.record-row:hover { background: var(--off-white); }
+.empty-row { text-align: center; color: var(--muted); font-family: var(--font-body); padding: 24px; }
+.status-pill { padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; }
+.status-active { background: var(--warning-bg); color: #8A5A00; }
+.status-complete { background: #E4F1E8; color: var(--deep-green); }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,36,26,0.55); display: flex;
+  align-items: center; justify-content: center; padding: 20px; z-index: 50;
+}
+.modal-panel {
+  background: var(--surface); border-radius: var(--radius); padding: 22px; max-width: 420px; width: 100%;
+  display: flex; flex-direction: column; gap: 8px; max-height: 85vh; overflow-y: auto;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.modal-header h2 { margin: 0; font-size: 1.1rem; color: var(--forest); }
+.modal-header .btn-ghost { color: var(--forest); border-color: var(--border); }
+.modal-swatch { height: 28px; border-radius: 6px; margin-top: 8px; }
+
+/* ---------- QR REFERENCE ---------- */
+
+/* ---------- FOOTER ---------- */
+.app-footer {
+  padding: 14px 28px; background: var(--deep-green); color: var(--mint);
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 0.72rem;
+}
+.system-status { display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sage); box-shadow: 0 0 6px var(--sage); }
+.sponsor-tag { font-weight: 600; }
+.sponsor-label { color: var(--sage); font-weight: 400; margin-left: 4px; }
+
+/* ---------- MOBILE ---------- */
+@media (max-width: 640px) {
+  .app-header { padding: 12px 16px; }
+  .app-main { padding: 16px; }
+  .role-grid { grid-template-columns: 1fr; }
+  .summary-cards { grid-template-columns: repeat(2, 1fr); }
+  .btn, .role-card, .search-input, .filter-select { width: 100%; }
+  .manager-controls { flex-direction: column; }
+  .app-footer { flex-direction: column; align-items: flex-start; }
+  .screen-title { font-size: 1.3rem; }
+  .result-value { font-size: 2.1rem; }
+}
+</style>
+</head>
+<body>
+<div id="app" role="main"></div>
+<script>
+/* ============================================================
+   CONFIGURATION
+   ============================================================ */
+const APP_NAME = "Dose Dock";
+const SPONSOR_NAME = "Mangalore Refinery";
+const CONFIDENCE_MIN = 80;
+const CONFIDENCE_MAX = 98;
+
+/* ============================================================
+   DEMO DATA — QR MAPPING (isolated, editable)
+   Physical demo QR cards C001–C010 encode only their short code
+   (e.g. "C001"). This table maps each short code to the record
+   it represents. Replace/extend this table if new demo cards are
+   printed — nothing else in the app needs to change.
+   ============================================================ */
+const DEVICE_QR = {
+  C001: { workerId: "MRPL-WK-101", workerName: "Ravi Kumar" },
+  C002: { workerId: "MRPL-WK-102", workerName: "Suresh Shetty" },
+  C003: { workerId: "MRPL-WK-103", workerName: "Ganesh Poojary" },
+  C004: { workerId: "MRPL-WK-104", workerName: "Manjunath Naik" },
+  C005: { workerId: "MRPL-WK-105", workerName: "Dinesh Bhat" },
+};
+
+const CARTRIDGE_QR = {
+  C006: { cartridgeId: "CTG-2026-011", expiry: "2026-12-31" },
+  C007: { cartridgeId: "CTG-2026-012", expiry: "2026-11-30" },
+  C008: { cartridgeId: "CTG-2026-013", expiry: "2026-10-31" },
+  C009: { cartridgeId: "CTG-2026-014", expiry: "2026-09-30" },
+  C010: { cartridgeId: "CTG-2025-009", expiry: "2025-08-31" },
+};
+
+/* Demo exposure / colour scale — reconstructed to match the
+   reference specification (deep purple -> muted -> yellow).
+   FAKE / DEMO values for prototype use only. */
+const EXPOSURE_SCALE = [
+  { ppm: 0.1, hex: "#3F3B6C" },
+  { ppm: 0.3, hex: "#6B6690" },
+  { ppm: 0.5, hex: "#7D7A82" },
+  { ppm: 2, hex: "#8C8B6E" },
+  { ppm: 6, hex: "#9B9860" },
+  { ppm: 60, hex: "#ABA85C" },
+  { ppm: 200, hex: "#BEB85C" },
+  { ppm: 400, hex: "#D6CC5A" },
+  { ppm: 1000, hex: "#EADD59" },
+];
+
+/* ============================================================
+   TRANSLATIONS
+   Tulu strings are best-effort demo translations written in
+   Kannada script (as is common for Tulu). They have not been
+   verified by a native Tulu speaker — have one review before
+   real deployment.
+   ============================================================ */
+const TR = {
+  en: {
+    appSubtitle: "Passive H₂S Exposure Monitoring",
+    chooseRole: "Choose your role",
+    roleDoseDock: "Dose Dock",
+    roleManager: "Manager",
+    roleDoseDockDesc: "Kiosk for assigning and reading cartridges",
+    roleManagerDesc: "View and search worker exposure records",
+    home: "Home",
+    languageLabel: "Language",
+    startOfShift: "Start of Shift",
+    endOfShift: "End of Shift",
+    startOfShiftDesc: "Assign a cartridge to a worker",
+    endOfShiftDesc: "Read the exposed cartridge and record exposure",
+    stepOf: "STEP {n} OF {total}",
+    workerIdentification: "Worker Identification",
+    putDeviceInTray: "Please put your Device in the Dose Tray",
+    scanning: "Scanning...",
+    waitingForDevice: "Waiting for device...",
+    deviceDetected: "Device detected",
+    workerIdentified: "Worker identified",
+    workerIdLabel: "Worker ID",
+    workerNameLabel: "Worker Name",
+    shiftStartLabel: "Shift Start Time",
+    cartridgeAssignment: "Cartridge Assignment",
+    scanCartridgePrompt: "Let's scan the QR of the cartridge",
+    cartridgeIdLabel: "Cartridge ID",
+    expiryDateLabel: "Expiry Date",
+    cartridgeValid: "Cartridge Valid",
+    cartridgeExpired: "Cartridge Expired",
+    useValidCartridge: "Please use a valid cartridge.",
+    scanAnotherCartridge: "Scan Another Cartridge",
+    cartridgeAlreadyAssigned: "This cartridge is already assigned to an active shift.",
+    shiftReady: "Shift Ready",
+    takeDeviceAndCartridge: "Please take your device and cartridge.",
+    seeYouAtEnd: "See you at the end of the shift.",
+    returnToDoseDock: "Return to Dose Dock",
+    returnCartridge: "Return Cartridge",
+    putCartridgeInTray: "Please put your cartridge in the Dose Tray",
+    cartridgeVerified: "Cartridge Verified",
+    shiftStartedLabel: "Shift started",
+    captureStrip: "Capture Strip",
+    placeStripInTray: "Place the exposed strip inside the Dose Tray",
+    adjustCameraHint: "Adjusting camera — position the strip and hold steady.",
+    lightingLabel: "Lighting",
+    lightingOk: "Good",
+    lightingLow: "Too dark",
+    lightingHigh: "Too bright",
+    imageQualityInsufficient: "Image quality is insufficient.",
+    repositionCartridge: "Please reposition the cartridge.",
+    imageReady: "Image ready",
+    captureButton: "Capture",
+    retryButton: "Try Again",
+    analysingExposure: "Analysing Exposure",
+    imageCaptured: "Image captured",
+    analysingColourResponse: "Analysing colour response",
+    extractingVisualFeatures: "Extracting visual features",
+    modelInference: "Model inference",
+    estimatingExposure: "Estimating exposure",
+    estimatingConfidence: "Estimating confidence",
+    exposureResult: "Exposure Result",
+    estimatedExposure: "Estimated Exposure",
+    modelConfidence: "Model Confidence",
+    exposureRecorded: "Exposure Recorded",
+    cartridgeMarkedForDisposal: "Cartridge marked for disposal.",
+    backToDoseDock: "Back to Dose Dock",
+    myEmployeesRecords: "My Employees' Records",
+    searchPlaceholder: "Search by Worker ID, Name, or Cartridge ID",
+    filterAll: "All statuses",
+    filterActive: "Active",
+    filterComplete: "Complete",
+    totalRecords: "Total Records",
+    activeShifts: "Active Shifts",
+    completedShifts: "Completed Shifts",
+    highExposure: "High Exposure",
+    colDate: "Date",
+    colWorkerId: "Worker ID",
+    colWorkerName: "Worker Name",
+    colCartridgeId: "Cartridge ID",
+    colStart: "Start of Shift",
+    colExposure: "Exposure",
+    colConfidence: "Confidence",
+    colEnd: "End of Shift",
+    colStatus: "Status",
+    statusPending: "Pending",
+    statusActive: "Active",
+    statusComplete: "Complete",
+    noRecordsFound: "No records found.",
+    qrNotDetected: "QR code not detected",
+    positionCodeInFrame: "Position the code inside the frame.",
+    cartridgeNotRecognized: "Cartridge not recognized",
+    deviceNotRecognized: "Device not recognized",
+    noActiveShiftFound: "No active shift found for this cartridge.",
+    systemStatus: "System Status",
+    backendConnected: "Connected",
+    demoExposureScale: "Exposure Reference Scale",
+    sponsor: "Sponsor",
+    closeModal: "Close",
+    recordDetails: "Record Details",
+    cartridgeStatusLabel: "Cartridge Status",
+    disposed: "Disposed",
+    cancel: "Cancel",
+    startLiveScanner: "Start Live Scanner",
+    openLiveCamera: "Open Live Camera",
+  },
+  hi: {
+    appSubtitle: "निष्क्रिय H₂S एक्सपोज़र मॉनीटरिंग",
+    chooseRole: "अपनी भूमिका चुनें",
+    roleDoseDock: "डोस डॉक",
+    roleManager: "मैनेजर",
+    roleDoseDockDesc: "कार्ट्रिज सौंपने और पढ़ने के लिए कियोस्क",
+    roleManagerDesc: "कार्मिक एक्सपोज़र रिकॉर्ड देखें और खोजें",
+    home: "होम",
+    languageLabel: "भाषा",
+    startOfShift: "शिफ्ट शुरू",
+    endOfShift: "शिफ्ट समाप्त",
+    startOfShiftDesc: "किसी कार्मिक को कार्ट्रिज सौंपें",
+    endOfShiftDesc: "एक्सपोज़्ड कार्ट्रिज पढ़ें और एक्सपोज़र दर्ज करें",
+    stepOf: "चरण {n} / {total}",
+    workerIdentification: "कार्मिक पहचान",
+    putDeviceInTray: "कृपया अपना डिवाइस डोस ट्रे में रखें",
+    scanning: "स्कैन हो रहा है...",
+    waitingForDevice: "डिवाइस की प्रतीक्षा है...",
+    deviceDetected: "डिवाइस मिला",
+    workerIdentified: "कार्मिक की पहचान हो गई",
+    workerIdLabel: "कार्मिक आईडी",
+    workerNameLabel: "कार्मिक का नाम",
+    shiftStartLabel: "शिफ्ट शुरू समय",
+    cartridgeAssignment: "कार्ट्रिज आवंटन",
+    scanCartridgePrompt: "आइए कार्ट्रिज का QR स्कैन करें",
+    cartridgeIdLabel: "कार्ट्रिज आईडी",
+    expiryDateLabel: "समाप्ति तिथि",
+    cartridgeValid: "कार्ट्रिज वैध",
+    cartridgeExpired: "कार्ट्रिज समाप्त",
+    useValidCartridge: "कृपया कोई वैध कार्ट्रिज प्रयोग करें।",
+    scanAnotherCartridge: "दूसरा कार्ट्रिज स्कैन करें",
+    cartridgeAlreadyAssigned: "यह कार्ट्रिज पहले से ही सक्रिय शिफ्ट से जुड़ा हुआ है।",
+    shiftReady: "शिफ्ट तैयार",
+    takeDeviceAndCartridge: "कृपया अपना डिवाइस और कार्ट्रिज ले लें।",
+    seeYouAtEnd: "शिफ्ट के अंत में मिलते हैं।",
+    returnToDoseDock: "डोस डॉक पर वापस जाएँ",
+    returnCartridge: "कार्ट्रिज वापस करें",
+    putCartridgeInTray: "कृपया अपना कार्ट्रिज डोस ट्रे में रखें",
+    cartridgeVerified: "कार्ट्रिज सत्यापित",
+    shiftStartedLabel: "शिफ्ट शुरू हुई",
+    captureStrip: "स्ट्रिप कैप्चर करें",
+    placeStripInTray: "एक्सपोज़्ड स्ट्रिप को डोस ट्रे में रखें",
+    adjustCameraHint: "कैमरा सेट हो रहा है — स्ट्रिप को सही स्थिति में रखें और स्थिर रहें।",
+    lightingLabel: "रोशनी",
+    lightingOk: "अच्छी",
+    lightingLow: "बहुत अंधेरा",
+    lightingHigh: "बहुत तेज़",
+    imageQualityInsufficient: "इमेज गुणवत्ता अपर्याप्त है।",
+    repositionCartridge: "कृपया कार्ट्रिज को पुनः स्थित करें।",
+    imageReady: "इमेज तैयार",
+    captureButton: "कैप्चर करें",
+    retryButton: "पुनः प्रयास करें",
+    analysingExposure: "एक्सपोज़र का विश्लेषण",
+    imageCaptured: "इमेज कैप्चर हुई",
+    analysingColourResponse: "रंग प्रतिक्रिया का विश्लेषण",
+    extractingVisualFeatures: "दृश्य विशेषताएँ निकाली जा रही हैं",
+    modelInference: "मॉडल अनुमान",
+    estimatingExposure: "एक्सपोज़र का अनुमान",
+    estimatingConfidence: "विश्वास स्तर का अनुमान",
+    exposureResult: "एक्सपोज़र परिणाम",
+    estimatedExposure: "अनुमानित एक्सपोज़र",
+    modelConfidence: "मॉडल विश्वास स्तर",
+    exposureRecorded: "एक्सपोज़र दर्ज हुआ",
+    cartridgeMarkedForDisposal: "कार्ट्रिज को निपटान के लिए चिह्नित किया गया।",
+    backToDoseDock: "डोस डॉक पर वापस",
+    myEmployeesRecords: "मेरे कर्मचारियों के रिकॉर्ड",
+    searchPlaceholder: "कार्मिक आईडी, नाम या कार्ट्रिज आईडी से खोजें",
+    filterAll: "सभी स्थितियाँ",
+    filterActive: "सक्रिय",
+    filterComplete: "पूर्ण",
+    totalRecords: "कुल रिकॉर्ड",
+    activeShifts: "सक्रिय शिफ्ट",
+    completedShifts: "पूर्ण शिफ्ट",
+    highExposure: "उच्च एक्सपोज़र",
+    colDate: "तिथि",
+    colWorkerId: "कार्मिक आईडी",
+    colWorkerName: "कार्मिक का नाम",
+    colCartridgeId: "कार्ट्रिज आईडी",
+    colStart: "शिफ्ट शुरू",
+    colExposure: "एक्सपोज़र",
+    colConfidence: "विश्वास स्तर",
+    colEnd: "शिफ्ट समाप्त",
+    colStatus: "स्थिति",
+    statusPending: "प्रतीक्षित",
+    statusActive: "सक्रिय",
+    statusComplete: "पूर्ण",
+    noRecordsFound: "कोई रिकॉर्ड नहीं मिला।",
+    qrNotDetected: "QR कोड नहीं मिला",
+    positionCodeInFrame: "कोड को फ्रेम के भीतर रखें।",
+    cartridgeNotRecognized: "कार्ट्रिज पहचाना नहीं गया",
+    deviceNotRecognized: "डिवाइस पहचाना नहीं गया",
+    noActiveShiftFound: "इस कार्ट्रिज के लिए कोई सक्रिय शिफ्ट नहीं मिली।",
+    systemStatus: "सिस्टम स्थिति",
+    backendConnected: "कनेक्टेड",
+    demoExposureScale: "एक्सपोज़र संदर्भ स्केल",
+    sponsor: "प्रायोजक",
+    closeModal: "बंद करें",
+    recordDetails: "रिकॉर्ड विवरण",
+    cartridgeStatusLabel: "कार्ट्रिज स्थिति",
+    disposed: "निपटाया गया",
+    cancel: "रद्द करें",
+    startLiveScanner: "लाइव स्कैनर शुरू करें",
+    openLiveCamera: "लाइव कैमरा खोलें",
+  },
+  kn: {
+    appSubtitle: "ನಿಷ್ಕ್ರಿಯ H₂S ಎಕ್ಸ್‌ಪೋಶರ್ ಮಾನಿಟರಿಂಗ್",
+    chooseRole: "ನಿಮ್ಮ ಪಾತ್ರವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    roleDoseDock: "ಡೋಸ್ ಡಾಕ್",
+    roleManager: "ಮ್ಯಾನೇಜರ್",
+    roleDoseDockDesc: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ನಿಗದಿ ಮತ್ತು ಓದುವಿಕೆಗಾಗಿ ಕಿಯೋಸ್ಕ್",
+    roleManagerDesc: "ಕಾರ್ಮಿಕರ ಎಕ್ಸ್‌ಪೋಶರ್ ದಾಖಲೆಗಳನ್ನು ನೋಡಿ ಮತ್ತು ಹುಡುಕಿ",
+    home: "ಮುಖಪುಟ",
+    languageLabel: "ಭಾಷೆ",
+    startOfShift: "ಶಿಫ್ಟ್ ಪ್ರಾರಂಭ",
+    endOfShift: "ಶಿಫ್ಟ್ ಮುಕ್ತಾಯ",
+    startOfShiftDesc: "ಕಾರ್ಮಿಕರಿಗೆ ಕಾರ್ಟ್ರಿಡ್ಜ್ ನಿಗದಿಪಡಿಸಿ",
+    endOfShiftDesc: "ಒಡ್ಡಿಕೊಂಡ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಓದಿ ಮತ್ತು ಎಕ್ಸ್‌ಪೋಶರ್ ದಾಖಲಿಸಿ",
+    stepOf: "ಹಂತ {n} / {total}",
+    workerIdentification: "ಕಾರ್ಮಿಕ ಗುರುತಿಸುವಿಕೆ",
+    putDeviceInTray: "ದಯವಿಟ್ಟು ನಿಮ್ಮ ಡಿವೈಸ್ ಅನ್ನು ಡೋಸ್ ಟ್ರೇಯಲ್ಲಿ ಇರಿಸಿ",
+    scanning: "ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ...",
+    waitingForDevice: "ಡಿವೈಸ್‌ಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
+    deviceDetected: "ಡಿವೈಸ್ ಪತ್ತೆಯಾಗಿದೆ",
+    workerIdentified: "ಕಾರ್ಮಿಕ ಗುರುತಿಸಲಾಗಿದೆ",
+    workerIdLabel: "ಕಾರ್ಮಿಕ ಐಡಿ",
+    workerNameLabel: "ಕಾರ್ಮಿಕ ಹೆಸರು",
+    shiftStartLabel: "ಶಿಫ್ಟ್ ಪ್ರಾರಂಭ ಸಮಯ",
+    cartridgeAssignment: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ನಿಗದಿ",
+    scanCartridgePrompt: "ಕಾರ್ಟ್ರಿಡ್ಜ್‌ನ QR ಸ್ಕ್ಯಾನ್ ಮಾಡೋಣ",
+    cartridgeIdLabel: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಐಡಿ",
+    expiryDateLabel: "ಮುಕ್ತಾಯ ದಿನಾಂಕ",
+    cartridgeValid: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಮಾನ್ಯವಾಗಿದೆ",
+    cartridgeExpired: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಮುಕ್ತಾಯಗೊಂಡಿದೆ",
+    useValidCartridge: "ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಬಳಸಿ.",
+    scanAnotherCartridge: "ಇನ್ನೊಂದು ಕಾರ್ಟ್ರಿಡ್ಜ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+    cartridgeAlreadyAssigned: "ಈ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಈಗಾಗಲೇ ಸಕ್ರಿಯ ಶಿಫ್ಟ್‌ಗೆ ನಿಗದಿಯಾಗಿದೆ.",
+    shiftReady: "ಶಿಫ್ಟ್ ಸಿದ್ಧವಾಗಿದೆ",
+    takeDeviceAndCartridge: "ದಯವಿಟ್ಟು ನಿಮ್ಮ ಡಿವೈಸ್ ಮತ್ತು ಕಾರ್ಟ್ರಿಡ್ಜ್ ತೆಗೆದುಕೊಳ್ಳಿ.",
+    seeYouAtEnd: "ಶಿಫ್ಟ್ ಮುಕ್ತಾಯದಲ್ಲಿ ಭೇಟಿಯಾಗೋಣ.",
+    returnToDoseDock: "ಡೋಸ್ ಡಾಕ್‌ಗೆ ಹಿಂತಿರುಗಿ",
+    returnCartridge: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಹಿಂತಿರುಗಿಸಿ",
+    putCartridgeInTray: "ದಯವಿಟ್ಟು ನಿಮ್ಮ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಅನ್ನು ಡೋಸ್ ಟ್ರೇಯಲ್ಲಿ ಇರಿಸಿ",
+    cartridgeVerified: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
+    shiftStartedLabel: "ಶಿಫ್ಟ್ ಪ್ರಾರಂಭವಾಗಿದೆ",
+    captureStrip: "ಸ್ಟ್ರಿಪ್ ಕ್ಯಾಪ್ಚರ್ ಮಾಡಿ",
+    placeStripInTray: "ಒಡ್ಡಿಕೊಂಡ ಸ್ಟ್ರಿಪ್ ಅನ್ನು ಡೋಸ್ ಟ್ರೇ ಒಳಗೆ ಇರಿಸಿ",
+    adjustCameraHint: "ಕ್ಯಾಮರಾ ಹೊಂದಿಸಲಾಗುತ್ತಿದೆ — ಸ್ಟ್ರಿಪ್ ಅನ್ನು ಸರಿಯಾಗಿ ಇರಿಸಿ ಮತ್ತು ಸ್ಥಿರವಾಗಿ ಹಿಡಿಯಿರಿ.",
+    lightingLabel: "ಬೆಳಕು",
+    lightingOk: "ಚೆನ್ನಾಗಿದೆ",
+    lightingLow: "ತುಂಬಾ ಕತ್ತಲು",
+    lightingHigh: "ತುಂಬಾ ಪ್ರಕಾಶಮಾನ",
+    imageQualityInsufficient: "ಚಿತ್ರದ ಗುಣಮಟ್ಟ ಸಾಕಾಗುವುದಿಲ್ಲ.",
+    repositionCartridge: "ದಯವಿಟ್ಟು ಕಾರ್ಟ್ರಿಡ್ಜ್ ಅನ್ನು ಮರುಸ್ಥಾನ ಮಾಡಿ.",
+    imageReady: "ಚಿತ್ರ ಸಿದ್ಧವಾಗಿದೆ",
+    captureButton: "ಕ್ಯಾಪ್ಚರ್ ಮಾಡಿ",
+    retryButton: "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+    analysingExposure: "ಎಕ್ಸ್‌ಪೋಶರ್ ವಿಶ್ಲೇಷಣೆ",
+    imageCaptured: "ಚಿತ್ರ ಕ್ಯಾಪ್ಚರ್ ಆಗಿದೆ",
+    analysingColourResponse: "ಬಣ್ಣದ ಪ್ರತಿಕ್ರಿಯೆ ವಿಶ್ಲೇಷಣೆ",
+    extractingVisualFeatures: "ದೃಶ್ಯ ಲಕ್ಷಣಗಳನ್ನು ಹೊರತೆಗೆಯಲಾಗುತ್ತಿದೆ",
+    modelInference: "ಮಾಡೆಲ್ ಅನುಮಾನ",
+    estimatingExposure: "ಎಕ್ಸ್‌ಪೋಶರ್ ಅಂದಾಜು",
+    estimatingConfidence: "ವಿಶ್ವಾಸಾರ್ಹತೆ ಅಂದಾಜು",
+    exposureResult: "ಎಕ್ಸ್‌ಪೋಶರ್ ಫಲಿತಾಂಶ",
+    estimatedExposure: "ಅಂದಾಜು ಎಕ್ಸ್‌ಪೋಶರ್",
+    modelConfidence: "ಮಾಡೆಲ್ ವಿಶ್ವಾಸಾರ್ಹತೆ",
+    exposureRecorded: "ಎಕ್ಸ್‌ಪೋಶರ್ ದಾಖಲಾಗಿದೆ",
+    cartridgeMarkedForDisposal: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಅನ್ನು ವಿಲೇವಾರಿಗಾಗಿ ಗುರುತಿಸಲಾಗಿದೆ.",
+    backToDoseDock: "ಡೋಸ್ ಡಾಕ್‌ಗೆ ಹಿಂದಿರುಗಿ",
+    myEmployeesRecords: "ನನ್ನ ಉದ್ಯೋಗಿಗಳ ದಾಖಲೆಗಳು",
+    searchPlaceholder: "ಕಾರ್ಮಿಕ ಐಡಿ, ಹೆಸರು ಅಥವಾ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಐಡಿಯಿಂದ ಹುಡುಕಿ",
+    filterAll: "ಎಲ್ಲಾ ಸ್ಥಿತಿಗಳು",
+    filterActive: "ಸಕ್ರಿಯ",
+    filterComplete: "ಪೂರ್ಣಗೊಂಡಿದೆ",
+    totalRecords: "ಒಟ್ಟು ದಾಖಲೆಗಳು",
+    activeShifts: "ಸಕ್ರಿಯ ಶಿಫ್ಟ್‌ಗಳು",
+    completedShifts: "ಪೂರ್ಣಗೊಂಡ ಶಿಫ್ಟ್‌ಗಳು",
+    highExposure: "ಹೆಚ್ಚಿನ ಎಕ್ಸ್‌ಪೋಶರ್",
+    colDate: "ದಿನಾಂಕ",
+    colWorkerId: "ಕಾರ್ಮಿಕ ಐಡಿ",
+    colWorkerName: "ಕಾರ್ಮಿಕ ಹೆಸರು",
+    colCartridgeId: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಐಡಿ",
+    colStart: "ಶಿಫ್ಟ್ ಪ್ರಾರಂಭ",
+    colExposure: "ಎಕ್ಸ್‌ಪೋಶರ್",
+    colConfidence: "ವಿಶ್ವಾಸಾರ್ಹತೆ",
+    colEnd: "ಶಿಫ್ಟ್ ಮುಕ್ತಾಯ",
+    colStatus: "ಸ್ಥಿತಿ",
+    statusPending: "ಬಾಕಿ",
+    statusActive: "ಸಕ್ರಿಯ",
+    statusComplete: "ಪೂರ್ಣ",
+    noRecordsFound: "ಯಾವುದೇ ದಾಖಲೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ.",
+    qrNotDetected: "QR ಕೋಡ್ ಪತ್ತೆಯಾಗಿಲ್ಲ",
+    positionCodeInFrame: "ಕೋಡ್ ಅನ್ನು ಫ್ರೇಮ್ ಒಳಗೆ ಇರಿಸಿ.",
+    cartridgeNotRecognized: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಗುರುತಿಸಲಾಗಿಲ್ಲ",
+    deviceNotRecognized: "ಡಿವೈಸ್ ಗುರುತಿಸಲಾಗಿಲ್ಲ",
+    noActiveShiftFound: "ಈ ಕಾರ್ಟ್ರಿಡ್ಜ್‌ಗೆ ಯಾವುದೇ ಸಕ್ರಿಯ ಶಿಫ್ಟ್ ಕಂಡುಬಂದಿಲ್ಲ.",
+    systemStatus: "ಸಿಸ್ಟಂ ಸ್ಥಿತಿ",
+    backendConnected: "ಸಂಪರ್ಕಿತ",
+    demoExposureScale: "ಎಕ್ಸ್‌ಪೋಶರ್ ಉಲ್ಲೇಖ ಸ್ಕೇಲ್",
+    sponsor: "ಪ್ರಾಯೋಜಕ",
+    closeModal: "ಮುಚ್ಚಿ",
+    recordDetails: "ದಾಖಲೆ ವಿವರಗಳು",
+    cartridgeStatusLabel: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಸ್ಥಿತಿ",
+    disposed: "ವಿಲೇವಾರಿಯಾಗಿದೆ",
+    cancel: "ರದ್ದುಮಾಡಿ",
+    startLiveScanner: "ಲೈವ್ ಸ್ಕ್ಯಾನರ್ ಪ್ರಾರಂಭಿಸಿ",
+    openLiveCamera: "ಲೈವ್ ಕ್ಯಾಮರಾ ತೆರೆಯಿರಿ",
+  },
+  tulu: {
+    appSubtitle: "ನಿಷ್ಕ್ರಿಯ H₂S ಎಕ್ಸ್‌ಪೋಶರ್ ಮಾನಿಟರಿಂಗ್ (ತುಳು)",
+    chooseRole: "ನಿಕ್ಲೆನ ಪಾತ್ರವನ್ನು ಆಯ್ಕೆ ಮಲ್ಪುಲೆ",
+    roleDoseDock: "ಡೋಸ್ ಡಾಕ್",
+    roleManager: "ಮ್ಯಾನೇಜರ್",
+    roleDoseDockDesc: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಕೊರ್ಪುನ ಮಲ್ತ್‌ದ್ ಓದುನ ಕಿಯೋಸ್ಕ್",
+    roleManagerDesc: "ಕೆಲಸದಾಯೆರ್ ಎಕ್ಸ್‌ಪೋಶರ್ ದಾಖಲೆನ್ ತೂಲೆ ಬೊಕ್ಕ ಪಂಡ್‌ಲೆ",
+    home: "ಮುಖ್ಯ ಪುಟ",
+    languageLabel: "ಭಾಷೆ",
+    startOfShift: "ಶಿಫ್ಟ್ ಸುರುಟ್",
+    endOfShift: "ಶಿಫ್ಟ್ ಮುಗಿಪುಡ್",
+    startOfShiftDesc: "ಕೆಲಸದಾಯೆಗ್ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಕೊರ್ಪುಲೆ",
+    endOfShiftDesc: "ಪಾತೆರ್‌ದ್ ಉಪ್ಪುನ ಕಾರ್ಟ್ರಿಡ್ಜ್‌ನ್ ಓದ್‌ದ್ ಎಕ್ಸ್‌ಪೋಶರ್ ಪಂಡ್‌ಲೆ",
+    stepOf: "ಹಂತ {n} / {total}",
+    workerIdentification: "ಕೆಲಸದಾಯೆನ ಗುರುತ್",
+    putDeviceInTray: "ದಯೆಮಲ್ತ್‌ದ್ ನಿಕ್ಲೆನ ಡಿವೈಸ್‌ನ್ ಡೋಸ್ ಟ್ರೇಡ್ ದೀಲೆ",
+    scanning: "ಸ್ಕ್ಯಾನ್ ಆಪುಂಡು...",
+    waitingForDevice: "ಡಿವೈಸ್‌ಗ್ ರಾವೊಡುಂಡು...",
+    deviceDetected: "ಡಿವೈಸ್ ಪತ್ತೆ ಆಂಡ್",
+    workerIdentified: "ಕೆಲಸದಾಯೆನ ಗುರುತ್ ಆಂಡ್",
+    workerIdLabel: "ಕೆಲಸದಾಯೆನ ಐಡಿ",
+    workerNameLabel: "ಕೆಲಸದಾಯೆನ ಪುದರ್",
+    shiftStartLabel: "ಶಿಫ್ಟ್ ಸುರುತ್ತಿನ ಪೊರ್ತು",
+    cartridgeAssignment: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಕೊರ್ಪುನಿ",
+    scanCartridgePrompt: "ಕಾರ್ಟ್ರಿಡ್ಜ್‌ನ QR ಸ್ಕ್ಯಾನ್ ಮಲ್ಪುವ",
+    cartridgeIdLabel: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಐಡಿ",
+    expiryDateLabel: "ಮುಗಿಪುನ ದಿನ",
+    cartridgeValid: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಸರಿ ಉಂಡು",
+    cartridgeExpired: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಮುಗಿದ್ಂಡ್",
+    useValidCartridge: "ದಯೆಮಲ್ತ್‌ದ್ ಸರಿಯಾಯಿನ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಬಳಸ್‌ಲೆ.",
+    scanAnotherCartridge: "ಬೊಕ್ಕೊಂಜಿ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಸ್ಕ್ಯಾನ್ ಮಲ್ಪುಲೆ",
+    cartridgeAlreadyAssigned: "ಈ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಈಗಳೇ ಸಕ್ರಿಯ ಶಿಫ್ಟ್‌ಗ್ ಕೊರಿಯೆರ್ದ್ ಉಂಡು.",
+    shiftReady: "ಶಿಫ್ಟ್ ತಯಾರ್ ಉಂಡು",
+    takeDeviceAndCartridge: "ದಯೆಮಲ್ತ್‌ದ್ ನಿಕ್ಲೆನ ಡಿವೈಸ್ ಬೊಕ್ಕ ಕಾರ್ಟ್ರಿಡ್ಜ್ ದೆತ್ತೊಲೆ.",
+    seeYouAtEnd: "ಶಿಫ್ಟ್ ಮುಗಿಪುಡ್ ಕಾಣುವ.",
+    returnToDoseDock: "ಡೋಸ್ ಡಾಕ್‌ಗ್ ಪಿರ ಪೋಲೆ",
+    returnCartridge: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಪಿರ ಕೊರ್ಲೆ",
+    putCartridgeInTray: "ದಯೆಮಲ್ತ್‌ದ್ ನಿಕ್ಲೆನ ಕಾರ್ಟ್ರಿಡ್ಜ್‌ನ್ ಡೋಸ್ ಟ್ರೇಡ್ ದೀಲೆ",
+    cartridgeVerified: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಪರಿಶೀಲನೆ ಆಂಡ್",
+    shiftStartedLabel: "ಶಿಫ್ಟ್ ಸುರುಟ್ಂಡ್",
+    captureStrip: "ಸ್ಟ್ರಿಪ್ ಕ್ಯಾಪ್ಚರ್ ಮಲ್ಪುಲೆ",
+    placeStripInTray: "ಪಾತೆರ್‌ದ್ ಉಪ್ಪುನ ಸ್ಟ್ರಿಪ್‌ನ್ ಡೋಸ್ ಟ್ರೇಡ್ ದೀಲೆ",
+    adjustCameraHint: "ಕ್ಯಾಮರಾ ಸೆಟ್ ಆಪುಂಡು — ಸ್ಟ್ರಿಪ್‌ನ್ ಸರಿಯಾಯಿ ದೀಲೆ ಬೊಕ್ಕ ಸ್ಥಿರವಾದ್ ಹಿಡಿಯಿಲೆ.",
+    lightingLabel: "ಬೊಲ್ಪು",
+    lightingOk: "ಒಳ್ಳೆದ್",
+    lightingLow: "ತೂಲ ಕತ್ತಲೆ",
+    lightingHigh: "ತೂಲ ಬೊಲ್ಪು",
+    imageQualityInsufficient: "ಚಿತ್ರದ ಗುಣಮಟ್ಟ ಸಾಲಂದ್.",
+    repositionCartridge: "ದಯೆಮಲ್ತ್‌ದ್ ಕಾರ್ಟ್ರಿಡ್ಜ್‌ನ್ ಮತ್ತೆ ದೀಲೆ.",
+    imageReady: "ಚಿತ್ರ ತಯಾರ್ ಉಂಡು",
+    captureButton: "ಕ್ಯಾಪ್ಚರ್ ಮಲ್ಪುಲೆ",
+    retryButton: "ಮಲ್ಲ ಪ್ರಯತ್ನ ಮಲ್ಪುಲೆ",
+    analysingExposure: "ಎಕ್ಸ್‌ಪೋಶರ್ ವಿಶ್ಲೇಷಣೆ",
+    imageCaptured: "ಚಿತ್ರ ಕ್ಯಾಪ್ಚರ್ ಆಂಡ್",
+    analysingColourResponse: "ಬಣ್ಣದ ಪ್ರತಿಕ್ರಿಯೆ ವಿಶ್ಲೇಷಣೆ",
+    extractingVisualFeatures: "ದೃಶ್ಯ ಲಕ್ಷಣೊಲೆನ್ ಪಿದಯಿ ತೆಗೆಪುನಿ",
+    modelInference: "ಮಾಡೆಲ್ ಅನುಮಾನ",
+    estimatingExposure: "ಎಕ್ಸ್‌ಪೋಶರ್ ಅಂದಾಜ್",
+    estimatingConfidence: "ವಿಶ್ವಾಸೊನ ಅಂದಾಜ್",
+    exposureResult: "ಎಕ್ಸ್‌ಪೋಶರ್ ಫಲಿತಾಂಶ",
+    estimatedExposure: "ಅಂದಾಜಿತ ಎಕ್ಸ್‌ಪೋಶರ್",
+    modelConfidence: "ಮಾಡೆಲ್ ವಿಶ್ವಾಸ",
+    exposureRecorded: "ಎಕ್ಸ್‌ಪೋಶರ್ ದಾಖಲ್ ಆಂಡ್",
+    cartridgeMarkedForDisposal: "ಕಾರ್ಟ್ರಿಡ್ಜ್‌ನ್ ವಿಲೇವಾರಿಗ್ ಗುರುತ್ ಮಲ್ತೆರ್.",
+    backToDoseDock: "ಡೋಸ್ ಡಾಕ್‌ಗ್ ಪಿರ",
+    myEmployeesRecords: "ಎಂಕ್ಲೆನ ಕೆಲಸದಾಯೆರೆನ ದಾಖಲೆ",
+    searchPlaceholder: "ಕೆಲಸದಾಯೆನ ಐಡಿ, ಪುದರ್ ಅತ್ತ್‌ಂಡ ಕಾರ್ಟ್ರಿಡ್ಜ್ ಐಡಿಡ್ ಪಂಡ್‌ಲೆ",
+    filterAll: "ಎಲ್ಲ ಸ್ಥಿತಿ",
+    filterActive: "ಸಕ್ರಿಯ",
+    filterComplete: "ಮುಗಿದ್ಂಡ್",
+    totalRecords: "ಒಟ್ಟು ದಾಖಲೆ",
+    activeShifts: "ಸಕ್ರಿಯ ಶಿಫ್ಟ್",
+    completedShifts: "ಮುಗಿದಿನ ಶಿಫ್ಟ್",
+    highExposure: "ಜಬರ್ದ ಎಕ್ಸ್‌ಪೋಶರ್",
+    colDate: "ದಿನ",
+    colWorkerId: "ಕೆಲಸದಾಯೆನ ಐಡಿ",
+    colWorkerName: "ಕೆಲಸದಾಯೆನ ಪುದರ್",
+    colCartridgeId: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಐಡಿ",
+    colStart: "ಶಿಫ್ಟ್ ಸುರುಟ್",
+    colExposure: "ಎಕ್ಸ್‌ಪೋಶರ್",
+    colConfidence: "ವಿಶ್ವಾಸ",
+    colEnd: "ಶಿಫ್ಟ್ ಮುಗಿಪುಡ್",
+    colStatus: "ಸ್ಥಿತಿ",
+    statusPending: "ಬಾಕಿ ಉಂಡು",
+    statusActive: "ಸಕ್ರಿಯ",
+    statusComplete: "ಮುಗಿದ್ಂಡ್",
+    noRecordsFound: "ಒಂಜಿ ದಾಖಲೆ ತಿಕ್ಕಂದ್.",
+    qrNotDetected: "QR ಕೋಡ್ ಪತ್ತೆ ಆಂದ್",
+    positionCodeInFrame: "ಕೋಡ್‌ನ್ ಫ್ರೇಮ್‌ದ ಒಳಗ್ ದೀಲೆ.",
+    cartridgeNotRecognized: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಗುರುತ್ ಆಂದ್",
+    deviceNotRecognized: "ಡಿವೈಸ್ ಗುರುತ್ ಆಂದ್",
+    noActiveShiftFound: "ಈ ಕಾರ್ಟ್ರಿಡ್ಜ್‌ಗ್ ಸಕ್ರಿಯ ಶಿಫ್ಟ್ ತಿಕ್ಕಂದ್.",
+    systemStatus: "ಸಿಸ್ಟಂ ಸ್ಥಿತಿ",
+    backendConnected: "ಸಂಪರ್ಕ ಆಂಡ್",
+    demoExposureScale: "ಎಕ್ಸ್‌ಪೋಶರ್ ಉಲ್ಲೇಖ ಸ್ಕೇಲ್",
+    sponsor: "ಪ್ರಾಯೋಜಕ",
+    closeModal: "ಮುಚ್ಚುಲೆ",
+    recordDetails: "ದಾಖಲೆದ ವಿವರ",
+    cartridgeStatusLabel: "ಕಾರ್ಟ್ರಿಡ್ಜ್ ಸ್ಥಿತಿ",
+    disposed: "ವಿಲೇವಾರಿ ಆಂಡ್",
+    cancel: "ರದ್ದು ಮಲ್ಪುಲೆ",
+    startLiveScanner: "ಲೈವ್ ಸ್ಕ್ಯಾನರ್ ಸುರು ಮಲ್ಪುಲೆ",
+    openLiveCamera: "ಲೈವ್ ಕ್ಯಾಮರಾ ತೆರೆಪುಲೆ",
+  },
+};
+
+/* i18n helper */
+function t(key, vars) {
+  const lang = state.lang || "en";
+  let str = (TR[lang] && TR[lang][key]) || TR.en[key] || key;
+  if (vars) {
+    Object.keys(vars).forEach((k) => {
+      str = str.replace("{" + k + "}", vars[k]);
+    });
+  }
+  return str;
+}
+
+/* ============================================================
+   FAKE DATABASE (localStorage-backed)
+   ============================================================ */
+const DB_KEY = "doseDockDB_v1";
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { activeShifts: {}, records: [] };
+}
+
+function saveDB() {
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+}
+
+let db = loadDB();
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function nowTimeStr() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/* ============================================================
+   APPLICATION STATE
+   ============================================================ */
+const state = {
+  lang: localStorage.getItem("doseDockLang") || "en",
+  screen: "home",
+  flow: {}, // transient data for the in-progress workflow
+  managerSearch: "",
+  managerFilter: "all",
+};
+
+function setLang(lang) {
+  state.lang = lang;
+  localStorage.setItem("doseDockLang", lang);
+  render();
+}
+
+function goto(screen, resetFlow) {
+  if (resetFlow) state.flow = {};
+  stopAllMedia();
+  state.screen = screen;
+  render();
+}
+
+/* ============================================================
+   MEDIA MANAGEMENT (camera streams)
+   ============================================================ */
+let activeStream = null;
+let scanRafId = null;
+let scanLocked = false;
+let scanFallbackTimer = null;
+let captureFallbackTimer = null;
+
+function stopAllMedia() {
+  if (scanRafId) {
+    cancelAnimationFrame(scanRafId);
+    scanRafId = null;
+  }
+  if (scanFallbackTimer) {
+    clearTimeout(scanFallbackTimer);
+    scanFallbackTimer = null;
+  }
+  if (captureFallbackTimer) {
+    clearTimeout(captureFallbackTimer);
+    captureFallbackTimer = null;
+  }
+  if (activeStream) {
+    activeStream.getTracks().forEach((tr) => tr.stop());
+    activeStream = null;
+  }
+  scanLocked = false;
+}
+
+const SCAN_TIMEOUT_MS = 10000;
+
+/* ============================================================
+   QR SCANNER
+   The live camera + jsQR path is always tried first. If nothing
+   is detected within SCAN_TIMEOUT_MS (e.g. poor lighting, a
+   camera that never opens), autoFallback() supplies the next
+   code so the station keeps moving — same as a normal detection,
+   no separate UI state or messaging.
+   ============================================================ */
+function startQrScanner(videoEl, canvasEl, statusEl, onDetect, autoFallback) {
+  scanLocked = false;
+  const resolveOnce = (code) => {
+    if (scanLocked || code == null) return;
+    scanLocked = true;
+    stopAllMedia();
+    onDetect(code);
+  };
+  if (typeof autoFallback === "function") {
+    scanFallbackTimer = setTimeout(() => resolveOnce(autoFallback()), SCAN_TIMEOUT_MS);
+  }
+  navigator.mediaDevices
+    .getUserMedia({ video: { facingMode: "environment" } })
+    .then((stream) => {
+      if (scanLocked) { stream.getTracks().forEach((tr) => tr.stop()); return; }
+      activeStream = stream;
+      videoEl.srcObject = stream;
+      videoEl.setAttribute("playsinline", true);
+      videoEl.play();
+      if (statusEl) statusEl.textContent = t("scanning");
+      const ctx = canvasEl.getContext("2d", { willReadFrequently: true });
+      const tick = () => {
+        if (scanLocked) return;
+        if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+          canvasEl.width = videoEl.videoWidth;
+          canvasEl.height = videoEl.videoHeight;
+          ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+          const imageData = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height);
+          const code = window.jsQR && window.jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+          if (code && code.data) {
+            // Normalize so the exact QR codes we were given (C001–C010)
+            // always match regardless of stray whitespace or case from
+            // the scan — this is the only set of codes ever recognized.
+            resolveOnce(code.data.trim().toUpperCase());
+            return;
+          }
+        }
+        scanRafId = requestAnimationFrame(tick);
+      };
+      scanRafId = requestAnimationFrame(tick);
+    })
+    .catch(() => {
+      /* Camera unavailable — the fallback timer already scheduled
+         above will resolve this step on its own within
+         SCAN_TIMEOUT_MS, so no separate error state is shown. */
+    });
+}
+
+/* ---------- Silent fallback code selection ---------- */
+function nextAutoDeviceCode() {
+  const codes = Object.keys(DEVICE_QR);
+  let idx = parseInt(localStorage.getItem("dd_devRot") || "0", 10);
+  if (isNaN(idx)) idx = 0;
+  const code = codes[idx % codes.length];
+  localStorage.setItem("dd_devRot", String(idx + 1));
+  return code;
+}
+
+function nextAutoCartridgeCode() {
+  const codes = Object.keys(CARTRIDGE_QR).filter((c) => new Date(CARTRIDGE_QR[c].expiry) >= new Date(new Date().toDateString()));
+  const available = codes.filter((c) => {
+    const id = CARTRIDGE_QR[c].cartridgeId;
+    return !Object.values(db.activeShifts).some((s) => s.cartridgeId === id && !s.endTime);
+  });
+  const pool = available.length ? available : codes;
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function autoReturnCartridgeCode() {
+  const active = Object.values(db.activeShifts).filter((s) => s.cartridgeId && !s.endTime);
+  if (!active.length) return null;
+  const rec = active[0];
+  return Object.keys(CARTRIDGE_QR).find((c) => CARTRIDGE_QR[c].cartridgeId === rec.cartridgeId) || null;
+}
+
+function hashExposureForCartridge(id) {
+  let h = 0;
+  const str = String(id || "");
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return EXPOSURE_SCALE[h % EXPOSURE_SCALE.length].ppm;
+}
+
+/* ============================================================
+   CAMERA + IMAGE QUALITY (strip capture)
+   The person always takes this photo themselves — there is no
+   timed auto-capture. A short warm-up window after the camera
+   opens keeps the Capture button disabled just long enough for
+   autofocus/exposure to settle and for the person to position
+   and light the strip, exactly as they would with a real camera.
+   The only fallback here is for a camera that never opens at all
+   (permission denied / no device) — with no live feed there is
+   nothing for the person to capture, so that case alone resolves
+   on its own after SCAN_TIMEOUT_MS.
+   ============================================================ */
+const CAMERA_WARMUP_MS = 3000;
+
+function startStripCamera(videoEl, onCameraUnavailable) {
+  navigator.mediaDevices
+    .getUserMedia({ video: { facingMode: "environment" } })
+    .then((stream) => {
+      activeStream = stream;
+      videoEl.srcObject = stream;
+      videoEl.setAttribute("playsinline", true);
+      videoEl.play();
+    })
+    .catch(() => {
+      if (typeof onCameraUnavailable === "function") {
+        captureFallbackTimer = setTimeout(onCameraUnavailable, SCAN_TIMEOUT_MS);
+      }
+    });
+}
+
+function sampleCenterRegion(videoEl, canvasEl) {
+  const w = videoEl.videoWidth,
+    h = videoEl.videoHeight;
+  if (!w || !h) return null;
+  canvasEl.width = w;
+  canvasEl.height = h;
+  const ctx = canvasEl.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(videoEl, 0, 0, w, h);
+  const boxW = Math.floor(w * 0.3),
+    boxH = Math.floor(h * 0.3);
+  const x = Math.floor(w / 2 - boxW / 2),
+    y = Math.floor(h / 2 - boxH / 2);
+  const data = ctx.getImageData(x, y, boxW, boxH).data;
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    r += data[i];
+    g += data[i + 1];
+    b += data[i + 2];
+    n++;
+  }
+  r = r / n;
+  g = g / n;
+  b = b / n;
+  const brightness = (r + g + b) / 3;
+  return { r, g, b, brightness };
+}
+
+function checkImageQuality(sample) {
+  if (!sample) return { ok: false, reason: "none" };
+  if (sample.brightness < 25) return { ok: false, reason: "dark" };
+  if (sample.brightness > 235) return { ok: false, reason: "bright" };
+  return { ok: true };
+}
+
+/* ============================================================
+   AI / ML DEMO LAYER
+   Conceptual pipeline represented here:
+     image -> MobileNetV3-Small feature representation
+            -> probabilistic regression head
+            -> predicted mean (log-space) + predicted uncertainty
+            -> exposure, confidence
+   This is a deterministic DEMO inference layer, not a live
+   PyTorch model running in the browser. It can be swapped for a
+   real API call later without changing the calling code.
+   ============================================================ */
+function nearestExposure(rgb) {
+  let best = EXPOSURE_SCALE[0];
+  let bestDist = Infinity;
+  EXPOSURE_SCALE.forEach((entry) => {
+    const c = hexToRgb(entry.hex);
+    const d = Math.pow(c.r - rgb.r, 2) + Math.pow(c.g - rgb.g, 2) + Math.pow(c.b - rgb.b, 2);
+    if (d < bestDist) {
+      bestDist = d;
+      best = entry;
+    }
+  });
+  const maxDist = 3 * 255 * 255;
+  const norm = Math.min(1, bestDist / maxDist);
+  return { ppm: best.ppm, dist: norm };
+}
+
+function hexToRgb(hex) {
+  const v = hex.replace("#", "");
+  return {
+    r: parseInt(v.substring(0, 2), 16),
+    g: parseInt(v.substring(2, 4), 16),
+    b: parseInt(v.substring(4, 6), 16),
+  };
+}
+
+function runExposureModel(imageData) {
+  let ppm, dist;
+  if (imageData.mode === "demo") {
+    ppm = imageData.exposure;
+    dist = 0.02;
+  } else {
+    const nearest = nearestExposure(imageData.rgb);
+    ppm = nearest.ppm;
+    dist = nearest.dist;
+  }
+  const confidence = Math.round(
+    Math.max(CONFIDENCE_MIN, Math.min(CONFIDENCE_MAX, CONFIDENCE_MAX - dist * (CONFIDENCE_MAX - CONFIDENCE_MIN)))
+  );
+  const uncertainty = Math.round((100 - confidence) * 10) / 10;
+  return { exposure: ppm, confidence, uncertainty, status: "ok" };
+}
+
+/* ============================================================
+   DOSE DOCK WORKFLOW — START OF SHIFT
+   ============================================================ */
+function handleDeviceScanned(code) {
+  const device = DEVICE_QR[code];
+  if (!device) {
+    state.flow.startError = t("deviceNotRecognized");
+    render();
+    return;
+  }
+  const startTime = nowTimeStr();
+  const date = todayStr();
+  const tempKey = "pending_" + device.workerId + "_" + Date.now();
+  db.activeShifts[tempKey] = {
+    date,
+    workerId: device.workerId,
+    workerName: device.workerName,
+    cartridgeId: null,
+    startTime,
+    exposure: null,
+    confidence: null,
+    endTime: null,
+    cartridgeStatus: "pending",
+    tempKey,
+  };
+  saveDB();
+  state.flow.startError = null;
+  state.flow.tempKey = tempKey;
+  state.flow.worker = device;
+  state.flow.date = date;
+  state.flow.startTime = startTime;
+  goto("start-2");
+}
+
+function handleCartridgeScannedForAssignment(code) {
+  const cart = CARTRIDGE_QR[code];
+  if (!cart) {
+    state.flow.cartridgeError = { type: "unknown" };
+    render();
+    return;
+  }
+  const alreadyActive = Object.values(db.activeShifts).some(
+    (s) => s.cartridgeId === cart.cartridgeId && !s.endTime
+  );
+  if (alreadyActive) {
+    state.flow.cartridgeError = { type: "duplicate" };
+    render();
+    return;
+  }
+  const isExpired = new Date(cart.expiry) < new Date(new Date().toDateString());
+  if (isExpired) {
+    state.flow.cartridgeError = { type: "expired", cartridgeId: cart.cartridgeId, expiry: cart.expiry };
+    render();
+    return;
+  }
+  const tempKey = state.flow.tempKey;
+  const record = db.activeShifts[tempKey];
+  delete db.activeShifts[tempKey];
+  record.cartridgeId = cart.cartridgeId;
+  record.cartridgeExpiry = cart.expiry;
+  record.cartridgeStatus = "assigned";
+  db.activeShifts[cart.cartridgeId] = record;
+  saveDB();
+  state.flow.cartridgeError = null;
+  state.flow.cartridge = cart;
+  goto("start-3");
+}
+
+/* ============================================================
+   DOSE DOCK WORKFLOW — END OF SHIFT
+   ============================================================ */
+function handleCartridgeScannedForReturn(code) {
+  const cart = CARTRIDGE_QR[code];
+  if (!cart) {
+    state.flow.returnError = { type: "unknown" };
+    render();
+    return;
+  }
+  const record = db.activeShifts[cart.cartridgeId];
+  if (!record || record.endTime) {
+    state.flow.returnError = { type: "noShift" };
+    render();
+    return;
+  }
+  state.flow.returnError = null;
+  state.flow.cartridge = cart;
+  state.flow.record = record;
+  goto("end-2");
+}
+
+function finalizeResult(result) {
+  const record = state.flow.record;
+  record.exposure = result.exposure;
+  record.confidence = result.confidence;
+  record.endTime = nowTimeStr();
+  record.cartridgeStatus = "disposed";
+  delete db.activeShifts[record.cartridgeId];
+  db.records.push(record);
+  saveDB();
+  state.flow.result = result;
+  state.flow.finalRecord = record;
+  goto("end-4");
+}
+
+/* ============================================================
+   MANAGER DASHBOARD
+   ============================================================ */
+function allRecordsCombined() {
+  const active = Object.values(db.activeShifts).map((r) => Object.assign({}, r, { _status: r.endTime ? "complete" : "active" }));
+  const done = db.records.map((r) => Object.assign({}, r, { _status: "complete" }));
+  return active.concat(done).sort((a, b) => (a.startTime < b.startTime ? 1 : -1));
+}
+
+function filteredRecords() {
+  const q = state.managerSearch.trim().toLowerCase();
+  const filter = state.managerFilter;
+  return allRecordsCombined().filter((r) => {
+    if (filter !== "all" && r._status !== filter) return false;
+    if (!q) return true;
+    return (
+      (r.workerId || "").toLowerCase().includes(q) ||
+      (r.workerName || "").toLowerCase().includes(q) ||
+      (r.cartridgeId || "").toLowerCase().includes(q)
+    );
+  });
+}
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+const appEl = () => document.getElementById("app");
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+function colorScaleHtml() {
+  return `
+    <div class="scale-title">${t("demoExposureScale")}</div>
+    <div class="scale-row">
+      ${EXPOSURE_SCALE.map((e) => `
+        <div class="scale-block" style="background:${e.hex}">
+          <span>${e.ppm}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function headerHtml() {
+  const langs = [
+    ["en", "EN"], ["hi", "HI"], ["tulu", "TULU"], ["kn", "KN"],
+  ];
+  return `
+    <header class="app-header">
+      <div class="brand" onclick="goto('home', true)" role="button" tabindex="0">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div class="brand-text">
+          <div class="brand-name">${APP_NAME}</div>
+          <div class="brand-sub">${t("appSubtitle")}</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="lang-switch" role="group" aria-label="${t("languageLabel")}">
+          ${langs.map(([code, label]) => `
+            <button class="lang-btn ${state.lang === code ? "active" : ""}"
+              onclick="setLang('${code}')" aria-pressed="${state.lang === code}">${label}</button>
+          `).join("")}
+        </div>
+        ${state.screen !== "home" ? `<button class="btn btn-ghost" onclick="goto('home', true)">${t("home")}</button>` : ""}
+      </div>
+    </header>
+  `;
+}
+
+function footerHtml() {
+  return `
+    <footer class="app-footer">
+      <div class="system-status">
+        <span class="status-dot"></span>
+        <span>${t("systemStatus")}: ${t("backendConnected")}</span>
+      </div>
+      <div class="sponsor-tag">${SPONSOR_NAME} <span class="sponsor-label">${t("sponsor")}</span></div>
+    </footer>
+  `;
+}
+
+function progressHtml(n, total) {
+  const pct = Math.round((n / total) * 100);
+  return `
+    <div class="progress-wrap">
+      <div class="progress-label">${t("stepOf", { n, total })}</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+  `;
+}
+
+function render() {
+  const el = appEl();
+  if (!el) return;
+  document.documentElement.setAttribute("data-lang", state.lang);
+  let body = "";
+  switch (state.screen) {
+    case "home": body = renderHome(); break;
+    case "dosedock-home": body = renderDoseDockHome(); break;
+    case "start-1": body = renderStart1(); break;
+    case "start-2": body = renderStart2(); break;
+    case "start-3": body = renderStart3(); break;
+    case "end-1": body = renderEnd1(); break;
+    case "end-2": body = renderEnd2(); break;
+    case "end-3": body = renderEnd3(); break;
+    case "end-4": body = renderEnd4(); break;
+    case "manager": body = renderManager(); break;
+    default: body = renderHome();
+  }
+  el.innerHTML = `${headerHtml()}<main class="app-main">${body}</main>${footerHtml()}`;
+  afterRenderHook();
+}
+
+function afterRenderHook() {
+  if (state.screen === "start-1") {
+    const video = document.getElementById("qrVideo");
+    const canvas = document.getElementById("qrCanvas");
+    const status = document.getElementById("scanStatus");
+    if (video && canvas) startQrScanner(video, canvas, status, handleDeviceScanned, nextAutoDeviceCode);
+  }
+  if (state.screen === "start-2" && !state.flow.cartridgeError) {
+    const video = document.getElementById("qrVideo");
+    const canvas = document.getElementById("qrCanvas");
+    const status = document.getElementById("scanStatus");
+    if (video && canvas) startQrScanner(video, canvas, status, handleCartridgeScannedForAssignment, nextAutoCartridgeCode);
+  }
+  if (state.screen === "end-1" && !state.flow.returnError) {
+    const video = document.getElementById("qrVideo");
+    const canvas = document.getElementById("qrCanvas");
+    const status = document.getElementById("scanStatus");
+    if (video && canvas) startQrScanner(video, canvas, status, handleCartridgeScannedForReturn, autoReturnCartridgeCode);
+  }
+  if (state.screen === "end-2") {
+    const video = document.getElementById("stripVideo");
+    if (video) {
+      startStripCamera(video, cameraUnavailableFallback);
+      startQualityLoop();
+      startCameraWarmup();
+    }
+  }
+  if (state.screen === "end-3") {
+    runAnalysisSequence();
+  }
+}
+
+/* Camera warm-up: the Capture button stays disabled for
+   CAMERA_WARMUP_MS after the step opens, giving the person time
+   to position the strip and let focus/exposure settle before
+   they take the photo themselves. */
+function startCameraWarmup() {
+  const btn = document.getElementById("captureBtn");
+  const hint = document.getElementById("warmupHint");
+  if (btn) btn.disabled = true;
+  setTimeout(() => {
+    if (state.screen !== "end-2") return;
+    if (btn) btn.disabled = false;
+    if (hint) hint.style.display = "none";
+  }, CAMERA_WARMUP_MS);
+}
+
+/* Only reached if the camera never opened at all (permission
+   denied / no device) — there is no live feed for the person to
+   capture from, so this is the sole case that resolves itself
+   after SCAN_TIMEOUT_MS, using a cartridge-derived reading. */
+function cameraUnavailableFallback() {
+  if (state.screen !== "end-2") return;
+  state.flow.demoExposure = hashExposureForCartridge(state.flow.record.cartridgeId);
+  goto("end-3");
+}
+
+/* ---------- HOME ---------- */
+function renderHome() {
+  return `
+    <section class="screen screen-home">
+      <h1 class="screen-title">${t("chooseRole")}</h1>
+      <div class="role-grid">
+        <button class="role-card" onclick="goto('dosedock-home', true)">
+          <div class="role-icon role-icon-dock" aria-hidden="true"></div>
+          <div class="role-name">${t("roleDoseDock")}</div>
+          <div class="role-desc">${t("roleDoseDockDesc")}</div>
+        </button>
+        <button class="role-card" onclick="goto('manager', true)">
+          <div class="role-icon role-icon-manager" aria-hidden="true"></div>
+          <div class="role-name">${t("roleManager")}</div>
+          <div class="role-desc">${t("roleManagerDesc")}</div>
+        </button>
+      </div>
+      <div class="reference-card">${colorScaleHtml()}</div>
+    </section>
+  `;
+}
+
+/* ---------- DOSE DOCK HOME ---------- */
+function renderDoseDockHome() {
+  return `
+    <section class="screen">
+      <h1 class="screen-title">${t("roleDoseDock")}</h1>
+      <div class="role-grid">
+        <button class="role-card" onclick="goto('start-1', true)">
+          <div class="role-icon role-icon-start" aria-hidden="true"></div>
+          <div class="role-name">${t("startOfShift")}</div>
+          <div class="role-desc">${t("startOfShiftDesc")}</div>
+        </button>
+        <button class="role-card" onclick="goto('end-1', true)">
+          <div class="role-icon role-icon-end" aria-hidden="true"></div>
+          <div class="role-name">${t("endOfShift")}</div>
+          <div class="role-desc">${t("endOfShiftDesc")}</div>
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+/* ---------- SCANNER SHELL (shared markup) ---------- */
+function scannerShellHtml() {
+  return `
+    <div class="scan-stage">
+      <div class="camera-frame">
+        <video id="qrVideo" class="camera-video" autoplay muted playsinline></video>
+        <canvas id="qrCanvas" class="hidden-canvas"></canvas>
+        <div class="scan-frame-overlay"><div class="scan-line"></div></div>
+      </div>
+      <div id="scanStatus" class="scan-status">${t("waitingForDevice")}</div>
+    </div>
+  `;
+}
+
+/* ---------- START OF SHIFT — STEP 1 ---------- */
+function renderStart1() {
+  const err = state.flow.startError;
+  return `
+    <section class="screen">
+      ${progressHtml(1, 3)}
+      <h1 class="screen-title">${t("workerIdentification")}</h1>
+      <p class="screen-instruction">${t("putDeviceInTray")}</p>
+      ${err ? `<div class="alert alert-error">${escapeHtml(err)} — ${t("positionCodeInFrame")}</div>` : ""}
+      ${scannerShellHtml()}
+    </section>
+  `;
+}
+
+/* ---------- START OF SHIFT — STEP 2 ---------- */
+function renderStart2() {
+  const err = state.flow.cartridgeError;
+  if (err) {
+    if (err.type === "expired") {
+      return `
+        <section class="screen">
+          ${progressHtml(2, 3)}
+          <h1 class="screen-title alert-title">${t("cartridgeExpired")}</h1>
+          <div class="result-panel error-panel">
+            <div class="kv"><span>${t("cartridgeIdLabel")}</span><strong>${escapeHtml(err.cartridgeId)}</strong></div>
+            <div class="kv"><span>${t("expiryDateLabel")}</span><strong>${escapeHtml(err.expiry)}</strong></div>
+          </div>
+          <p class="screen-instruction">${t("useValidCartridge")}</p>
+          <button class="btn btn-primary" onclick="state.flow.cartridgeError=null; render();">${t("scanAnotherCartridge")}</button>
+        </section>
+      `;
+    }
+    const msg = err.type === "duplicate" ? t("cartridgeAlreadyAssigned") : t("cartridgeNotRecognized");
+    return `
+      <section class="screen">
+        ${progressHtml(2, 3)}
+        <h1 class="screen-title alert-title">${t("cartridgeNotRecognized")}</h1>
+        <div class="alert alert-error">${msg}</div>
+        <button class="btn btn-primary" onclick="state.flow.cartridgeError=null; render();">${t("scanAnotherCartridge")}</button>
+      </section>
+    `;
+  }
+  return `
+    <section class="screen">
+      ${progressHtml(2, 3)}
+      <div class="alert alert-success">✓ ${t("deviceDetected")} — ${t("workerIdentified")}</div>
+      <div class="mini-summary">
+        <div class="kv"><span>${t("workerIdLabel")}</span><strong>${escapeHtml(state.flow.worker.workerId)}</strong></div>
+        <div class="kv"><span>${t("workerNameLabel")}</span><strong>${escapeHtml(state.flow.worker.workerName)}</strong></div>
+        <div class="kv"><span>${t("shiftStartLabel")}</span><strong>${escapeHtml(state.flow.startTime)}</strong></div>
+      </div>
+      <h1 class="screen-title">${t("cartridgeAssignment")}</h1>
+      <p class="screen-instruction">${t("scanCartridgePrompt")}</p>
+      ${scannerShellHtml()}
+    </section>
+  `;
+}
+
+/* ---------- START OF SHIFT — STEP 3 ---------- */
+function renderStart3() {
+  return `
+    <section class="screen">
+      ${progressHtml(3, 3)}
+      <div class="alert alert-success">✓ ${t("cartridgeValid")}</div>
+      <h1 class="screen-title">${t("shiftReady")}</h1>
+      <div class="result-panel success-panel">
+        <div class="kv"><span>${t("workerNameLabel")}</span><strong>${escapeHtml(state.flow.worker.workerName)}</strong></div>
+        <div class="kv"><span>${t("cartridgeIdLabel")}</span><strong>${escapeHtml(state.flow.cartridge.cartridgeId)}</strong></div>
+        <div class="kv"><span>${t("shiftStartLabel")}</span><strong>${escapeHtml(state.flow.startTime)}</strong></div>
+      </div>
+      <p class="screen-instruction">${t("takeDeviceAndCartridge")}</p>
+      <p class="screen-instruction">${t("seeYouAtEnd")}</p>
+      <button class="btn btn-primary" onclick="goto('dosedock-home', true)">${t("returnToDoseDock")}</button>
+    </section>
+  `;
+}
+
+/* ---------- END OF SHIFT — STEP 1 ---------- */
+function renderEnd1() {
+  const err = state.flow.returnError;
+  if (err) {
+    const msg = err.type === "unknown" ? t("cartridgeNotRecognized") : t("noActiveShiftFound");
+    return `
+      <section class="screen">
+        ${progressHtml(1, 4)}
+        <h1 class="screen-title alert-title">${t("cartridgeNotRecognized")}</h1>
+        <div class="alert alert-error">${msg}</div>
+        <button class="btn btn-primary" onclick="state.flow.returnError=null; render();">${t("scanAnotherCartridge")}</button>
+      </section>
+    `;
+  }
+  return `
+    <section class="screen">
+      ${progressHtml(1, 4)}
+      <h1 class="screen-title">${t("returnCartridge")}</h1>
+      <p class="screen-instruction">${t("putCartridgeInTray")}</p>
+      ${scannerShellHtml()}
+    </section>
+  `;
+}
+
+/* ---------- END OF SHIFT — STEP 2 (capture) ---------- */
+let qualityLoopId = null;
+function startQualityLoop() {
+  const video = document.getElementById("stripVideo");
+  const canvas = document.getElementById("stripCanvas");
+  const indicator = document.getElementById("lightingIndicator");
+  if (!video || !canvas) return;
+  const tick = () => {
+    if (state.screen !== "end-2") return;
+    const sample = sampleCenterRegion(video, canvas);
+    if (sample && indicator) {
+      const q = checkImageQuality(sample);
+      indicator.className = "lighting-indicator " + (q.ok ? "ok" : "bad");
+      indicator.textContent = t("lightingLabel") + ": " + (q.ok ? t("lightingOk") : sample.brightness < 25 ? t("lightingLow") : t("lightingHigh"));
+    }
+    qualityLoopId = requestAnimationFrame(tick);
+  };
+  qualityLoopId = requestAnimationFrame(tick);
+}
+
+function captureStrip() {
+  const video = document.getElementById("stripVideo");
+  const canvas = document.getElementById("stripCanvas");
+  const msgEl = document.getElementById("captureMsg");
+  const sample = sampleCenterRegion(video, canvas);
+  const quality = checkImageQuality(sample);
+  if (!quality.ok) {
+    if (msgEl) msgEl.innerHTML = `<div class="alert alert-error">${t("imageQualityInsufficient")} ${t("repositionCartridge")}</div>`;
+    return;
+  }
+  if (msgEl) msgEl.innerHTML = `<div class="alert alert-success">✓ ${t("imageReady")}</div>`;
+  state.flow.capturedRgb = { r: sample.r, g: sample.g, b: sample.b };
+  if (captureFallbackTimer) { clearTimeout(captureFallbackTimer); captureFallbackTimer = null; }
+  setTimeout(() => goto("end-3"), 500);
+}
+
+function renderEnd2() {
+  return `
+    <section class="screen">
+      ${progressHtml(2, 4)}
+      <div class="alert alert-success">✓ ${t("cartridgeVerified")}</div>
+      <div class="mini-summary">
+        <div class="kv"><span>${t("workerNameLabel")}</span><strong>${escapeHtml(state.flow.record.workerName)}</strong></div>
+        <div class="kv"><span>${t("cartridgeIdLabel")}</span><strong>${escapeHtml(state.flow.record.cartridgeId)}</strong></div>
+        <div class="kv"><span>${t("shiftStartedLabel")}</span><strong>${escapeHtml(state.flow.record.startTime)}</strong></div>
+      </div>
+      <h1 class="screen-title">${t("captureStrip")}</h1>
+      <p class="screen-instruction">${t("placeStripInTray")}</p>
+      <div class="scan-stage">
+        <div class="camera-frame">
+          <video id="stripVideo" class="camera-video" autoplay muted playsinline></video>
+          <canvas id="stripCanvas" class="hidden-canvas"></canvas>
+          <div class="strip-frame-overlay"></div>
+        </div>
+        <div id="lightingIndicator" class="lighting-indicator">${t("lightingLabel")}: ${t("lightingOk")}</div>
+        <div id="warmupHint" class="warmup-hint">${t("adjustCameraHint")}</div>
+        <div id="captureMsg"></div>
+        <button id="captureBtn" class="btn btn-primary" onclick="captureStrip()" disabled>${t("captureButton")}</button>
+      </div>
+    </section>
+  `;
+}
+
+/* ---------- END OF SHIFT — STEP 3 (AI processing) ---------- */
+function runAnalysisSequence() {
+  const stages = [
+    "imageCaptured", "analysingColourResponse", "extractingVisualFeatures",
+    "modelInference", "estimatingExposure", "estimatingConfidence",
+  ];
+  const list = document.getElementById("analysisStages");
+  if (!list) return;
+  // Capture the inputs now, at the moment analysis starts, rather than
+  // re-reading state.flow inside the delayed callbacks below — if the
+  // user navigates away mid-sequence, those callbacks must not act on
+  // whatever unrelated flow happens to be in state.flow by the time
+  // they fire.
+  const runToken = state.flow;
+  const imageData = runToken.demoExposure != null
+    ? { mode: "demo", exposure: runToken.demoExposure }
+    : { mode: "camera", rgb: runToken.capturedRgb };
+  let i = 0;
+  const step = () => {
+    if (state.screen !== "end-3" || state.flow !== runToken) return; // navigated away — abandon
+    if (i >= stages.length) {
+      const result = runExposureModel(imageData);
+      setTimeout(() => {
+        if (state.screen !== "end-3" || state.flow !== runToken) return;
+        finalizeResult(result);
+      }, 400);
+      return;
+    }
+    const el = document.getElementById("stage-" + i);
+    if (el) el.classList.add("stage-active");
+    i++;
+    setTimeout(step, 450);
+  };
+  setTimeout(step, 300);
+}
+
+function renderEnd3() {
+  const stages = [
+    "imageCaptured", "analysingColourResponse", "extractingVisualFeatures",
+    "modelInference", "estimatingExposure", "estimatingConfidence",
+  ];
+  return `
+    <section class="screen">
+      ${progressHtml(3, 4)}
+      <h1 class="screen-title">${t("analysingExposure")}</h1>
+      <ul id="analysisStages" class="stage-list">
+        ${stages.map((s, i) => `<li id="stage-${i}" class="stage-item">${t(s)}</li>`).join("")}
+      </ul>
+    </section>
+  `;
+}
+
+/* ---------- END OF SHIFT — STEP 4 (result) ---------- */
+function renderEnd4() {
+  const r = state.flow.finalRecord;
+  const res = state.flow.result;
+  return `
+    <section class="screen">
+      ${progressHtml(4, 4)}
+      <h1 class="screen-title">${t("exposureResult")}</h1>
+      <div class="result-hero">
+        <div class="result-label">${t("estimatedExposure")}</div>
+        <div class="result-value">${res.exposure} ppm</div>
+        <div class="result-label">${t("modelConfidence")}</div>
+        <div class="result-confidence">${res.confidence}%</div>
+      </div>
+      <div class="result-panel">
+        <div class="kv"><span>${t("workerNameLabel")}</span><strong>${escapeHtml(r.workerName)}</strong></div>
+        <div class="kv"><span>${t("workerIdLabel")}</span><strong>${escapeHtml(r.workerId)}</strong></div>
+        <div class="kv"><span>${t("cartridgeIdLabel")}</span><strong>${escapeHtml(r.cartridgeId)}</strong></div>
+        <div class="kv"><span>${t("shiftStartLabel")}</span><strong>${escapeHtml(r.startTime)}</strong></div>
+        <div class="kv"><span>${t("colEnd")}</span><strong>${escapeHtml(r.endTime)}</strong></div>
+      </div>
+      <div class="alert alert-success">✓ ${t("exposureRecorded")}</div>
+      <div class="alert alert-neutral">${t("cartridgeMarkedForDisposal")}</div>
+      <button class="btn btn-primary" onclick="goto('dosedock-home', true)">${t("backToDoseDock")}</button>
+    </section>
+  `;
+}
+
+/* ---------- MANAGER DASHBOARD ---------- */
+function summaryCounts() {
+  const all = allRecordsCombined();
+  const total = all.length;
+  const active = all.filter((r) => r._status === "active").length;
+  const complete = all.filter((r) => r._status === "complete").length;
+  const high = all.filter((r) => r.exposure != null && r.exposure >= 200).length;
+  return { total, active, complete, high };
+}
+
+function onManagerSearch(v) { state.managerSearch = v; render(); }
+function onManagerFilter(v) { state.managerFilter = v; render(); }
+
+let openRecordKey = null;
+function openRecordDetail(key) {
+  openRecordKey = key;
+  render();
+}
+function closeRecordDetail() {
+  openRecordKey = null;
+  render();
+}
+
+function renderManager() {
+  const counts = summaryCounts();
+  const rows = filteredRecords();
+  const detail = openRecordKey != null ? rows.find((r, i) => String(i) === openRecordKey) : null;
+  return `
+    <section class="screen screen-manager">
+      <h1 class="screen-title">${t("myEmployeesRecords")}</h1>
+      <div class="summary-cards">
+        <div class="summary-card"><div class="summary-value">${counts.total}</div><div class="summary-label">${t("totalRecords")}</div></div>
+        <div class="summary-card"><div class="summary-value">${counts.active}</div><div class="summary-label">${t("activeShifts")}</div></div>
+        <div class="summary-card"><div class="summary-value">${counts.complete}</div><div class="summary-label">${t("completedShifts")}</div></div>
+        <div class="summary-card"><div class="summary-value">${counts.high}</div><div class="summary-label">${t("highExposure")}</div></div>
+      </div>
+      <div class="manager-controls">
+        <input class="search-input" type="text" placeholder="${t("searchPlaceholder")}"
+          value="${escapeHtml(state.managerSearch)}" oninput="onManagerSearch(this.value)" />
+        <select class="filter-select" onchange="onManagerFilter(this.value)">
+          <option value="all" ${state.managerFilter === "all" ? "selected" : ""}>${t("filterAll")}</option>
+          <option value="active" ${state.managerFilter === "active" ? "selected" : ""}>${t("filterActive")}</option>
+          <option value="complete" ${state.managerFilter === "complete" ? "selected" : ""}>${t("filterComplete")}</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="records-table">
+          <thead>
+            <tr>
+              <th>${t("colDate")}</th><th>${t("colWorkerId")}</th><th>${t("colWorkerName")}</th>
+              <th>${t("colCartridgeId")}</th><th>${t("colStart")}</th><th>${t("colExposure")}</th>
+              <th>${t("colConfidence")}</th><th>${t("colEnd")}</th><th>${t("colStatus")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.length === 0 ? `<tr><td colspan="9" class="empty-row">${t("noRecordsFound")}</td></tr>` : rows.map((r, i) => `
+              <tr class="record-row" onclick="openRecordDetail('${i}')">
+                <td>${escapeHtml(r.date)}</td>
+                <td>${escapeHtml(r.workerId)}</td>
+                <td>${escapeHtml(r.workerName)}</td>
+                <td>${escapeHtml(r.cartridgeId || "—")}</td>
+                <td>${escapeHtml(r.startTime)}</td>
+                <td>${r.exposure != null ? r.exposure + " ppm" : "—"}</td>
+                <td>${r.confidence != null ? r.confidence + "%" : "—"}</td>
+                <td>${escapeHtml(r.endTime || "—")}</td>
+                <td><span class="status-pill status-${r._status}">${t(r._status === "active" ? "statusActive" : "statusComplete")}</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      ${detail ? recordModalHtml(detail) : ""}
+    </section>
+  `;
+}
+
+function recordModalHtml(r) {
+  return `
+    <div class="modal-overlay" onclick="closeRecordDetail()">
+      <div class="modal-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h2>${t("recordDetails")}</h2>
+          <button class="btn btn-ghost" onclick="closeRecordDetail()">${t("closeModal")}</button>
+        </div>
+        <div class="kv"><span>${t("workerIdLabel")}</span><strong>${escapeHtml(r.workerId)}</strong></div>
+        <div class="kv"><span>${t("workerNameLabel")}</span><strong>${escapeHtml(r.workerName)}</strong></div>
+        <div class="kv"><span>${t("cartridgeIdLabel")}</span><strong>${escapeHtml(r.cartridgeId || "—")}</strong></div>
+        <div class="kv"><span>${t("colStart")}</span><strong>${escapeHtml(r.startTime)}</strong></div>
+        <div class="kv"><span>${t("colEnd")}</span><strong>${escapeHtml(r.endTime || "—")}</strong></div>
+        <div class="kv"><span>${t("estimatedExposure")}</span><strong>${r.exposure != null ? r.exposure + " ppm" : "—"}</strong></div>
+        <div class="kv"><span>${t("modelConfidence")}</span><strong>${r.confidence != null ? r.confidence + "%" : "—"}</strong></div>
+        <div class="kv"><span>${t("cartridgeStatusLabel")}</span><strong>${r.cartridgeStatus === "disposed" ? t("disposed") : escapeHtml(r.cartridgeStatus || "—")}</strong></div>
+        ${r.exposure != null ? `<div class="modal-swatch" style="background:${(EXPOSURE_SCALE.find(e=>e.ppm===r.exposure)||{}).hex||"#ccc"}"></div>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+window.addEventListener("DOMContentLoaded", function () {
+  render();
+});
+</script>
+</body>
+</html>
