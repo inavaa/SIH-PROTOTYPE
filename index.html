@@ -128,7 +128,7 @@ button { font-family: inherit; }
   background: #0A1F17; border-radius: var(--radius); overflow: hidden;
   border: 2px solid var(--forest);
 }
-.camera-video { width: 100%; height: 100%; object-fit: cover; }
+.camera-video { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; transition: transform 0.1s ease; }
 .hidden-canvas { display: none; }
 .scan-frame-overlay {
   position: absolute; inset: 14%; border: 2px solid var(--sage); border-radius: 12px;
@@ -148,6 +148,9 @@ button { font-family: inherit; }
 .lighting-indicator.ok { background: #E4F1E8; color: var(--deep-green); }
 .lighting-indicator.bad { background: var(--warning-bg); color: #8A5A00; }
 .warmup-hint { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+.zoom-control { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 420px; }
+.zoom-icon { font-size: 1rem; color: var(--sage); font-weight: 700; width: 16px; text-align: center; }
+.zoom-slider { flex: 1; accent-color: var(--emerald); height: 4px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 
@@ -273,11 +276,11 @@ const CONFIDENCE_MAX = 98;
    printed — nothing else in the app needs to change.
    ============================================================ */
 const DEVICE_QR = {
-  C001: { workerId: "W-1042", workerName: "Ramesh Kumar" },
-  C002: { workerId: "W-1043", workerName: "Suresh Yadav" },
-  C003: { workerId: "W-1044", workerName: "Anil Sharma" },
-  C004: { workerId: "W-1045", workerName: "Vikram Singh" },
-  C005: { workerId: "W-1046", workerName: "Deepak Verma" },
+  C001: { workerId: "MRPL-WK-101", workerName: "Ravi Kumar" },
+  C002: { workerId: "MRPL-WK-102", workerName: "Suresh Shetty" },
+  C003: { workerId: "MRPL-WK-103", workerName: "Ganesh Poojary" },
+  C004: { workerId: "MRPL-WK-104", workerName: "Manjunath Naik" },
+  C005: { workerId: "MRPL-WK-105", workerName: "Dinesh Bhat" },
 };
 
 const CARTRIDGE_QR = {
@@ -328,6 +331,7 @@ const TR = {
     workerIdentification: "Worker Identification",
     putDeviceInTray: "Please put your Device in the Dose Tray",
     scanning: "Scanning...",
+    holdSteady: "Hold steady...",
     waitingForDevice: "Waiting for device...",
     deviceDetected: "Device detected",
     workerIdentified: "Worker identified",
@@ -354,6 +358,7 @@ const TR = {
     captureStrip: "Capture Strip",
     placeStripInTray: "Place the exposed strip inside the Dose Tray",
     adjustCameraHint: "Adjusting camera — position the strip and hold steady.",
+    zoomLabel: "Zoom",
     lightingLabel: "Lighting",
     lightingOk: "Good",
     lightingLow: "Too dark",
@@ -432,6 +437,7 @@ const TR = {
     workerIdentification: "कार्मिक पहचान",
     putDeviceInTray: "कृपया अपना डिवाइस डोस ट्रे में रखें",
     scanning: "स्कैन हो रहा है...",
+    holdSteady: "स्थिर रखें...",
     waitingForDevice: "डिवाइस की प्रतीक्षा है...",
     deviceDetected: "डिवाइस मिला",
     workerIdentified: "कार्मिक की पहचान हो गई",
@@ -458,6 +464,7 @@ const TR = {
     captureStrip: "स्ट्रिप कैप्चर करें",
     placeStripInTray: "एक्सपोज़्ड स्ट्रिप को डोस ट्रे में रखें",
     adjustCameraHint: "कैमरा सेट हो रहा है — स्ट्रिप को सही स्थिति में रखें और स्थिर रहें।",
+    zoomLabel: "ज़ूम",
     lightingLabel: "रोशनी",
     lightingOk: "अच्छी",
     lightingLow: "बहुत अंधेरा",
@@ -536,6 +543,7 @@ const TR = {
     workerIdentification: "ಕಾರ್ಮಿಕ ಗುರುತಿಸುವಿಕೆ",
     putDeviceInTray: "ದಯವಿಟ್ಟು ನಿಮ್ಮ ಡಿವೈಸ್ ಅನ್ನು ಡೋಸ್ ಟ್ರೇಯಲ್ಲಿ ಇರಿಸಿ",
     scanning: "ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ...",
+    holdSteady: "ಸ್ಥಿರವಾಗಿ ಹಿಡಿಯಿರಿ...",
     waitingForDevice: "ಡಿವೈಸ್‌ಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
     deviceDetected: "ಡಿವೈಸ್ ಪತ್ತೆಯಾಗಿದೆ",
     workerIdentified: "ಕಾರ್ಮಿಕ ಗುರುತಿಸಲಾಗಿದೆ",
@@ -562,6 +570,7 @@ const TR = {
     captureStrip: "ಸ್ಟ್ರಿಪ್ ಕ್ಯಾಪ್ಚರ್ ಮಾಡಿ",
     placeStripInTray: "ಒಡ್ಡಿಕೊಂಡ ಸ್ಟ್ರಿಪ್ ಅನ್ನು ಡೋಸ್ ಟ್ರೇ ಒಳಗೆ ಇರಿಸಿ",
     adjustCameraHint: "ಕ್ಯಾಮರಾ ಹೊಂದಿಸಲಾಗುತ್ತಿದೆ — ಸ್ಟ್ರಿಪ್ ಅನ್ನು ಸರಿಯಾಗಿ ಇರಿಸಿ ಮತ್ತು ಸ್ಥಿರವಾಗಿ ಹಿಡಿಯಿರಿ.",
+    zoomLabel: "ಝೂಮ್",
     lightingLabel: "ಬೆಳಕು",
     lightingOk: "ಚೆನ್ನಾಗಿದೆ",
     lightingLow: "ತುಂಬಾ ಕತ್ತಲು",
@@ -640,6 +649,7 @@ const TR = {
     workerIdentification: "ಕೆಲಸದಾಯೆನ ಗುರುತ್",
     putDeviceInTray: "ದಯೆಮಲ್ತ್‌ದ್ ನಿಕ್ಲೆನ ಡಿವೈಸ್‌ನ್ ಡೋಸ್ ಟ್ರೇಡ್ ದೀಲೆ",
     scanning: "ಸ್ಕ್ಯಾನ್ ಆಪುಂಡು...",
+    holdSteady: "ಸ್ಥಿರವಾದ್ ಹಿಡಿಯಿಲೆ...",
     waitingForDevice: "ಡಿವೈಸ್‌ಗ್ ರಾವೊಡುಂಡು...",
     deviceDetected: "ಡಿವೈಸ್ ಪತ್ತೆ ಆಂಡ್",
     workerIdentified: "ಕೆಲಸದಾಯೆನ ಗುರುತ್ ಆಂಡ್",
@@ -666,6 +676,7 @@ const TR = {
     captureStrip: "ಸ್ಟ್ರಿಪ್ ಕ್ಯಾಪ್ಚರ್ ಮಲ್ಪುಲೆ",
     placeStripInTray: "ಪಾತೆರ್‌ದ್ ಉಪ್ಪುನ ಸ್ಟ್ರಿಪ್‌ನ್ ಡೋಸ್ ಟ್ರೇಡ್ ದೀಲೆ",
     adjustCameraHint: "ಕ್ಯಾಮರಾ ಸೆಟ್ ಆಪುಂಡು — ಸ್ಟ್ರಿಪ್‌ನ್ ಸರಿಯಾಯಿ ದೀಲೆ ಬೊಕ್ಕ ಸ್ಥಿರವಾದ್ ಹಿಡಿಯಿಲೆ.",
+    zoomLabel: "ಝೂಮ್",
     lightingLabel: "ಬೊಲ್ಪು",
     lightingOk: "ಒಳ್ಳೆದ್",
     lightingLow: "ತೂಲ ಕತ್ತಲೆ",
@@ -799,6 +810,9 @@ let scanRafId = null;
 let scanLocked = false;
 let scanFallbackTimer = null;
 let captureFallbackTimer = null;
+let stripTrack = null;
+let hardwareZoomSupported = false;
+let currentZoom = 1;
 
 function stopAllMedia() {
   if (scanRafId) {
@@ -818,29 +832,37 @@ function stopAllMedia() {
     activeStream = null;
   }
   scanLocked = false;
+  stripTrack = null;
+  hardwareZoomSupported = false;
+  currentZoom = 1;
 }
 
 const SCAN_TIMEOUT_MS = 10000;
+const QR_CONFIRM_MS = 5000;
 
 /* ============================================================
    QR SCANNER
-   The live camera + jsQR path is always tried first. If nothing
-   is detected within SCAN_TIMEOUT_MS (e.g. poor lighting, a
-   camera that never opens), autoFallback() supplies the next
-   code so the station keeps moving — same as a normal detection,
-   no separate UI state or messaging.
+   A QR code must be read as the SAME value continuously for
+   QR_CONFIRM_MS before it is accepted — this rides out a single
+   noisy frame and confirms the code is actually held steady in
+   front of the camera rather than a stray misread. If nothing
+   is read at all for SCAN_TIMEOUT_MS (poor lighting, camera never
+   opens), autoFallback() supplies the next code so the station
+   still keeps moving.
    ============================================================ */
 function startQrScanner(videoEl, canvasEl, statusEl, onDetect, autoFallback) {
   scanLocked = false;
+  let heldCode = null;
+  let heldSince = null;
+  const scanStart = performance.now();
+
   const resolveOnce = (code) => {
     if (scanLocked || code == null) return;
     scanLocked = true;
     stopAllMedia();
     onDetect(code);
   };
-  if (typeof autoFallback === "function") {
-    scanFallbackTimer = setTimeout(() => resolveOnce(autoFallback()), SCAN_TIMEOUT_MS);
-  }
+
   navigator.mediaDevices
     .getUserMedia({ video: { facingMode: "environment" } })
     .then((stream) => {
@@ -853,6 +875,8 @@ function startQrScanner(videoEl, canvasEl, statusEl, onDetect, autoFallback) {
       const ctx = canvasEl.getContext("2d", { willReadFrequently: true });
       const tick = () => {
         if (scanLocked) return;
+        const now = performance.now();
+        let sawCode = null;
         if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
           canvasEl.width = videoEl.videoWidth;
           canvasEl.height = videoEl.videoHeight;
@@ -861,20 +885,42 @@ function startQrScanner(videoEl, canvasEl, statusEl, onDetect, autoFallback) {
           const code = window.jsQR && window.jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
           if (code && code.data) {
             // Normalize so the exact QR codes we were given (C001–C010)
-            // always match regardless of stray whitespace or case from
-            // the scan — this is the only set of codes ever recognized.
-            resolveOnce(code.data.trim().toUpperCase());
-            return;
+            // always match regardless of stray whitespace or case.
+            sawCode = code.data.trim().toUpperCase();
           }
+        }
+        if (sawCode) {
+          if (sawCode === heldCode) {
+            if (now - heldSince >= QR_CONFIRM_MS) {
+              resolveOnce(heldCode);
+              return;
+            }
+          } else {
+            heldCode = sawCode;
+            heldSince = now;
+            if (statusEl) statusEl.textContent = t("holdSteady");
+          }
+        } else {
+          if (heldCode !== null && statusEl) statusEl.textContent = t("scanning");
+          heldCode = null;
+          heldSince = null;
+        }
+        // Checked unconditionally (not just when no code is seen at
+        // all) so a code that keeps flickering between values —
+        // never holding steady long enough to confirm — still hits
+        // this safety net instead of scanning forever.
+        if (typeof autoFallback === "function" && now - scanStart >= SCAN_TIMEOUT_MS) {
+          resolveOnce(autoFallback());
+          return;
         }
         scanRafId = requestAnimationFrame(tick);
       };
       scanRafId = requestAnimationFrame(tick);
     })
     .catch(() => {
-      /* Camera unavailable — the fallback timer already scheduled
-         above will resolve this step on its own within
-         SCAN_TIMEOUT_MS, so no separate error state is shown. */
+      if (typeof autoFallback === "function") {
+        scanFallbackTimer = setTimeout(() => resolveOnce(autoFallback()), SCAN_TIMEOUT_MS);
+      }
     });
 }
 
@@ -932,15 +978,57 @@ function startStripCamera(videoEl, onCameraUnavailable) {
     .getUserMedia({ video: { facingMode: "environment" } })
     .then((stream) => {
       activeStream = stream;
+      stripTrack = stream.getVideoTracks()[0];
       videoEl.srcObject = stream;
       videoEl.setAttribute("playsinline", true);
       videoEl.play();
+      setupZoomControl();
     })
     .catch(() => {
       if (typeof onCameraUnavailable === "function") {
         captureFallbackTimer = setTimeout(onCameraUnavailable, SCAN_TIMEOUT_MS);
       }
     });
+}
+
+/* Zoom on the strip camera: uses the real hardware/software zoom
+   capability of the camera track when the device exposes one
+   (Chrome on most Android phones), so what the person sees is an
+   actual optical/digital zoom. Where that capability isn't
+   exposed (most desktop/laptop webcams), falls back to a CSS
+   scale on the video preview — and the sampled region is shrunk
+   to match, so the reading always corresponds to what's on
+   screen either way. */
+function setupZoomControl() {
+  const slider = document.getElementById("zoomSlider");
+  if (!slider) return;
+  const caps = stripTrack && stripTrack.getCapabilities ? stripTrack.getCapabilities() : {};
+  if (caps && caps.zoom) {
+    hardwareZoomSupported = true;
+    slider.min = caps.zoom.min;
+    slider.max = caps.zoom.max;
+    slider.step = caps.zoom.step || 0.1;
+    slider.value = caps.zoom.min;
+    currentZoom = caps.zoom.min;
+  } else {
+    hardwareZoomSupported = false;
+    slider.min = 1;
+    slider.max = 3;
+    slider.step = 0.1;
+    slider.value = 1;
+    currentZoom = 1;
+  }
+}
+
+function applyZoom(value) {
+  currentZoom = parseFloat(value) || 1;
+  const video = document.getElementById("stripVideo");
+  if (hardwareZoomSupported && stripTrack && stripTrack.applyConstraints) {
+    stripTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(() => {});
+    if (video) video.style.transform = "scale(1)";
+  } else if (video) {
+    video.style.transform = "scale(" + currentZoom + ")";
+  }
 }
 
 function sampleCenterRegion(videoEl, canvasEl) {
@@ -951,8 +1039,12 @@ function sampleCenterRegion(videoEl, canvasEl) {
   canvasEl.height = h;
   const ctx = canvasEl.getContext("2d", { willReadFrequently: true });
   ctx.drawImage(videoEl, 0, 0, w, h);
-  const boxW = Math.floor(w * 0.3),
-    boxH = Math.floor(h * 0.3);
+  // If zoom is only a CSS preview scale (no hardware capability),
+  // shrink the sampled box by the same factor so the analysed
+  // region matches what's visibly centered on screen.
+  const zoomDivisor = hardwareZoomSupported ? 1 : Math.max(1, currentZoom);
+  const boxW = Math.max(4, Math.floor((w * 0.3) / zoomDivisor)),
+    boxH = Math.max(4, Math.floor((h * 0.3) / zoomDivisor));
   const x = Math.floor(w / 2 - boxW / 2),
     y = Math.floor(h / 2 - boxH / 2);
   const data = ctx.getImageData(x, y, boxW, boxH).data;
@@ -1519,6 +1611,12 @@ function renderEnd2() {
           <video id="stripVideo" class="camera-video" autoplay muted playsinline></video>
           <canvas id="stripCanvas" class="hidden-canvas"></canvas>
           <div class="strip-frame-overlay"></div>
+        </div>
+        <div class="zoom-control">
+          <span class="zoom-icon" aria-hidden="true">&#8722;</span>
+          <input id="zoomSlider" type="range" min="1" max="3" step="0.1" value="1"
+            class="zoom-slider" oninput="applyZoom(this.value)" aria-label="${t("zoomLabel")}" />
+          <span class="zoom-icon" aria-hidden="true">&#43;</span>
         </div>
         <div id="lightingIndicator" class="lighting-indicator">${t("lightingLabel")}: ${t("lightingOk")}</div>
         <div id="warmupHint" class="warmup-hint">${t("adjustCameraHint")}</div>
